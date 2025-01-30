@@ -1,0 +1,17 @@
+services:
+  web:
+    build:
+      context: web
+      dockerfile: Dockerfile
+    ports:
+      - "8080:5000"
+
+  mariadb:
+    image: mariadb
+    environment:
+      MYSQL_ROOT_PASSWORD: <fixme>
+      MYSQL_DATABASE: app
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - "./db:/var/lib/mysql"
