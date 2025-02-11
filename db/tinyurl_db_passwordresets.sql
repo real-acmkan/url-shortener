@@ -16,19 +16,21 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `clicks`
+-- Table structure for table `passwordresets`
 --
 
-DROP TABLE IF EXISTS `clicks`;
+DROP TABLE IF EXISTS `passwordresets`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `clicks` (
+CREATE TABLE `passwordresets` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `short_code` varchar(10) DEFAULT NULL,
-  `clicked_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `user_id` int NOT NULL,
+  `token` varchar(255) NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `short_code` (`short_code`),
-  CONSTRAINT `clicks_ibfk_1` FOREIGN KEY (`short_code`) REFERENCES `urls` (`short_code`) ON DELETE CASCADE
+  KEY `fk_passwordresets_user` (`user_id`),
+  CONSTRAINT `fk_passwordresets_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `passwordresets_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -41,4 +43,4 @@ CREATE TABLE `clicks` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-01-29 17:10:44
+-- Dump completed on 2025-02-11 12:43:05
