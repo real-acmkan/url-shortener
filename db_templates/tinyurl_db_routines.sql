@@ -165,9 +165,9 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `get_users`()
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_userid_by_email`(IN user_email VARCHAR(255))
 BEGIN
-    SELECT id, email, created_at FROM Users;
+    SELECT id FROM Users where email = user_email;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;

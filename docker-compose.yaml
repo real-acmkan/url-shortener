@@ -7,8 +7,10 @@ services:
       - "8080:5000"
     environment:
       DB_PASS: /run/secrets/db_pass
+      SECRET_KEY: /run/secrets/secret_key
     secrets:
       - db_pass
+      - secret_key
 
   mariadb:
     image: mariadb
@@ -24,4 +26,6 @@ services:
 
 secrets:
   db_pass:
-    file: pass 
+    file: pass
+  secret_key:
+    file: key 
