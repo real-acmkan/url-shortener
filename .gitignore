@@ -2,3 +2,4 @@ pass
 key
 .env
 venv/
+db/
