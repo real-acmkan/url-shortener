@@ -28,7 +28,7 @@
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `create_url`(
+CREATE PROCEDURE `create_url`(
     IN short_code VARCHAR(20),
     IN original_url TEXT,
     IN user_id INT,
@@ -53,7 +53,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `create_user`(
+CREATE PROCEDURE `create_user`(
     IN user_email VARCHAR(255),
     IN password_hash CHAR(64) -- SHA-256 hash length
 )
@@ -75,7 +75,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `delete_url`(IN short_code VARCHAR(20), IN user_id INT)
+CREATE PROCEDURE `delete_url`(IN short_code VARCHAR(20), IN user_id INT)
 BEGIN
     DELETE FROM URLs WHERE short_code = short_code AND user_id = user_id;
 END ;;
@@ -94,7 +94,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `edit_url`(
+CREATE PROCEDURE `edit_url`(
     IN user_id INT,
     IN short_code VARCHAR(20),
     IN new_original_url TEXT
@@ -127,7 +127,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `get_clicks`(IN short_code VARCHAR(20))
+CREATE PROCEDURE `get_clicks`(IN short_code VARCHAR(20))
 BEGIN
     SELECT click_count FROM URLs WHERE short_code = short_code;
 END ;;
@@ -146,7 +146,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `get_url`(IN short_code VARCHAR(20))
+CREATE PROCEDURE `get_url`(IN short_code VARCHAR(20))
 BEGIN
     SELECT original_url FROM URLs WHERE short_code = short_code;
 END ;;
@@ -165,7 +165,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `get_userid_by_email`(IN user_email VARCHAR(255))
+CREATE PROCEDURE `get_userid_by_email`(IN user_email VARCHAR(255))
 BEGIN
     SELECT id FROM Users where email = user_email;
 END ;;
@@ -184,7 +184,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `get_user_urls`(IN user_id INT)
+CREATE PROCEDURE `get_user_urls`(IN user_id INT)
 BEGIN
     SELECT id, short_code, original_url, expiration_date, click_count FROM URLs WHERE user_id = user_id;
 END ;;
@@ -203,7 +203,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `login`(
+CREATE PROCEDURE `login`(
     IN user_email VARCHAR(255),
     IN password_attempt CHAR(64) -- SHA-256 hash
 )
@@ -232,7 +232,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `log_click`(IN short_code VARCHAR(20))
+CREATE PROCEDURE `log_click`(IN short_code VARCHAR(20))
 BEGIN
     UPDATE URLs SET click_count = click_count + 1 WHERE short_code = short_code;
 END ;;
