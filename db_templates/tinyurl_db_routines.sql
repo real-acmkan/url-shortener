@@ -251,7 +251,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `reset_password`(
+CREATE PROCEDURE `reset_password`(
     IN user_email VARCHAR(255),
     IN reset_token CHAR(64),
     IN new_password_hash CHAR(64) -- SHA-256 hashed password
@@ -293,7 +293,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `set_reset_token`(
+CREATE PROCEDURE `set_reset_token`(
     IN user_id INT,
     IN token CHAR(64) -- Hashing the token for extra security
 )
@@ -315,7 +315,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `update_url_expiration`(
+CREATE PROCEDURE `update_url_expiration`(
     IN short_code VARCHAR(20),
     IN new_expiration TIMESTAMP
 )
@@ -337,7 +337,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `update_user_email`(
+CREATE PROCEDURE `update_user_email`(
     IN user_id INT,
     IN new_email VARCHAR(255)
 )
@@ -360,7 +360,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `verify_user`(IN user_id INT)
+CREATE PROCEDURE `verify_user`(IN user_id INT)
 BEGIN
     INSERT INTO ValidatedEmails (user_id) VALUES (user_id);
 END ;;

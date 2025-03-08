@@ -13,9 +13,9 @@ def create_connection_pool():
     host="mariadb",
     port=3306,
     user="root",
-    password=os.getenv("DB_PASS"),
-    database="linkify",
-    pool_name="webapp",
+    password=open(os.getenv("DB_PASS"), "r").read(),
+    database="webapp",
+    pool_name="app",
     pool_size=50)
     return pool
 
@@ -40,7 +40,7 @@ except Exception as e:
 
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
+app.config['SECRET_KEY'] = open(os.getenv("SECRET_KEY"), "r").read()
 app.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(minutes=30)
 
 @app.route('/', methods=['GET'])
@@ -51,9 +51,9 @@ def index():
 def redirect_url(short_id):
     pconn = pool.get_connection()
     cur = pconn.cursor()
-    url = cur.callproc("get_url", (short_id))
+    url = cur.callproc("get_url", (short_id,))
     if url:
-        cur.callproc("log_click", (short_id))
+        cur.callproc("log_click", (short_id,))
         pconn.close()
         return redirect(url)
     pconn.close()
@@ -81,7 +81,7 @@ def login():
         return jsonify({'status':'invalid username or password'})
     if 'verify' in session:
         return jsonify({'status':'unverified'})
-    id = cur.callproc("get_userid_by_email", (email))
+    id = cur.callproc("get_userid_by_email", (email,))
     session["email"] = email
     session["id"] = id
     return jsonify({'status':'login successful'})
@@ -94,7 +94,7 @@ def register():
         return jsonify({'status':'bad username or password'})
     pconn = pool.get_connection()
     cur = pconn.cursor()
-    result = cur.callproc("get_userid_by_email", (email))
+    result = cur.callproc("get_userid_by_email", (email,))
     if result:
         return jsonify({'error':'user already exists'}) 
     result = cur.callproc("create_user", (email,create_digest(pw)))
@@ -120,7 +120,7 @@ def reset(token):
     if hashed != session['reset']:
         return jsonify({'status':'missing verification token'})
     session.pop('reset', default=None)
-    return jsonify('status':'password reset successful')
+    return jsonify({'status':'password reset successful'})
     # pconn = pool.get_connection()
     # cur = pconn.cursor()
     # cur.callproc('reset_password', ())
@@ -143,7 +143,7 @@ def verify(token):
     pconn = pool.get_connection()
     cur = pconn.cursor()
     id = cur.callproc('get_userid_by_email', (session['email']))
-    result = cur.callproc("verify_user", (id))
+    result = cur.callproc("verify_user", (id,))
     if not result:
         return jsonify({'status':'failed to verify. please try again'})
     session.pop('verify', default=None)

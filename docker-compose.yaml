@@ -11,18 +11,22 @@ services:
     secrets:
       - db_pass
       - secret_key
+    depends_on:
+      mariadb:
+        condition: service_started
+        restart: true
 
   mariadb:
     image: mariadb
     environment:
-      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_pass
-      MYSQL_DATABASE: app
+      MARIADB_ROOT_PASSWORD_FILE: /run/secrets/db_pass
+      MARIADB_DATABASE: webapp
     ports:
       - "127.0.0.1:3306:3306"
-    volumes:
-      - "./db:/var/lib/mysql"
     secrets:
       - db_pass
+    volumes:
+      - "./db:/var/lib/mysql"
 
 secrets:
   db_pass:
