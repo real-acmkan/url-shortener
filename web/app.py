@@ -104,7 +104,7 @@ def register():
     session['verify'] = token
     return jsonify({'status':'successfully registered'})
 
-@app.route('/api/v1/auth/forgot-passowrd')
+@app.route('/api/v1/auth/forgot-password', methods=['POST'])
 def forgot():
     token = os.urandom(16).hex()
     print(f"reset token: {token}")
