@@ -1,0 +1,574 @@
+openapi: 3.0.3
+info:
+  title: Linkify API - OpenAPI 3.0
+  description: This is the API documentation for the Linkify API
+  version: 1.0.0
+
+tags:
+  - name: shortcode
+    description: Shortcode
+  - name: auth
+    description: Authentication for users
+  - name: url
+    description: Operations for links
+  - name: user
+    description: User profile management
+paths:
+  /{short_code}:
+    get:
+      tags:
+        - shortcode
+      summary: Redirect from shortened URL
+      description: Redirects a short URL to its original destination.
+      parameters:
+        - name: short_code
+          in: path
+          required: true
+          description: The short URL identifier.
+          schema:
+            type: string
+      responses:
+        "302":
+          description: Redirect to the original URL
+        "404":
+          description: Shortcode not recognized
+
+  /auth/register:
+    post:
+      tags:
+        - auth
+      summary: Register a new user
+      description: Create a new user on the platform.
+      operationId: addUser
+      requestBody:
+        description: Credentials
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Registration'
+        required: true
+      responses:
+        '201':
+          description: User registered successfully
+        '400':
+          $ref: "#/components/responses/BadRequest"
+      security:
+        - linkify_auth:
+            - write:links
+            - read:links
+
+  /auth/login:
+    post:
+      tags:
+        - auth
+      summary: Log in as user
+      description: Login as a user. A session token will be returned in a cookie named 'session'.
+      operationId: logUserIn
+      requestBody:
+        description: Credentials
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Auth'
+        required: true
+      responses:
+        '200':
+          description: OK
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: session token
+        '400':
+          $ref: "#/components/responses/BadRequest"
+      security:
+        - linkify_auth:
+            - write:links
+            - read:links
+
+  /auth/logout:
+    get:
+      tags:
+        - auth
+      summary: Logout
+      description: Logs the user out. The session will be destroyed.
+      operationId: logoutUser
+      responses:
+        '200':
+          description: User logged out successfully
+        '400':
+          $ref: "#/components/responses/BadRequest"
+      security:
+        - linkify_auth:
+            - write:links
+            - read:links
+
+  /auth/forgot-password:
+    post:
+      tags:
+        - auth
+      summary: Send forgot password link
+      description: Sends a reset password link to the specified email if an account exists.
+      operationId: forgotPassword
+      requestBody:
+        description: Email to send reset password link to
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Email'
+      responses:
+        '200':
+          description: Password reset link sent (if account exists)
+        '400':
+          $ref: "#/components/responses/BadRequest"
+      security:
+        - linkify_auth:
+            - write:links
+            - read:links
+
+  /auth/validate-reset:
+    get:
+      tags:
+        - auth
+      summary: Validate password reset token
+      description: Validate a reset token to allow the user to reset their password.
+      operationId: pass_reset_token
+      parameters:
+        - name: reset_token
+          in: query
+          description: Unique token ID for password reset
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Valid reset token
+        '400':
+          $ref: "#/components/responses/BadRequest"
+      security:
+        - linkify_auth:
+            - write:links
+            - read:links
+
+  /auth/reset-password:
+    post:
+      tags:
+        - auth
+      summary: Reset user password
+      description: Resets a user password after their reset token has been verified.
+      operationId: resetPassword
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Password'
+      responses:
+        '200':
+          description: Password reset successfully
+        '400':
+          $ref: "#/components/responses/BadRequest"
+      security:
+        - linkify_auth:
+            - write:links
+            - read:links
+
+  /auth/verify:
+    get:
+      tags:
+        - auth
+      summary: Verify signup code sent to user registration email
+      description: Verify a user account by the token sent to the user's email.
+      operationId: verifyUser
+      parameters:
+        - name: token
+          in: query
+          description: Unique verification token
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User verified successfully
+        '400':
+          $ref: "#/components/responses/BadRequest"
+      security:
+        - linkify_auth:
+            - write:links
+            - read:links
+
+  /shorturls:
+    get:
+      tags:
+        - url
+      summary: Get the current user's links
+      description: Returns a collection (array) of the links created by the current user.
+      operationId: getLinks
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Collection"
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+      security:
+        - linkify_auth:
+            - write:links
+            - read:links
+
+    post:
+      tags:
+        - url
+      summary: Create shortened link
+      description: Creates a new short URL for the provided original link.
+      operationId: createLink
+      requestBody:
+        description: URL to be shortened
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Url'
+      responses:
+        '201':
+          description: Short link created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Link"
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+      security:
+        - linkify_auth:
+            - write:links
+            - read:links
+
+  /shorturl/{short_code}:
+    get:
+      tags:
+        - url
+      summary: Get link information
+      description: Retrieve details about a specific shortened link by its code.
+      operationId: getLinkInfo
+      parameters:
+        - name: short_code
+          in: path
+          description: Short URL code
+          required: true
+          schema:
+            type: string
+            example: abc123
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Link"
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+      security:
+        - linkify_auth:
+            - write:links
+            - read:links
+
+    delete:
+      tags:
+        - url
+      summary: Delete shortened link
+      description: Removes a shortened link from the system.
+      operationId: deleteLink
+      parameters:
+        - name: short_code
+          in: path
+          description: Short URL code to delete
+          required: true
+          schema:
+            type: string
+            example: abc123
+      responses:
+        '204':
+          description: Link deleted successfully (no content)
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+      security:
+        - linkify_auth:
+            - write:links
+            - read:links
+
+  /shorturl/{short_code}/expiry:
+    post:
+      tags:
+        - url
+      summary: Update short link expiry
+      description: Set or modify the expiry date for a shortened link.
+      operationId: updateLinkExpiry
+      parameters:
+        - name: short_code
+          in: path
+          description: Short URL code
+          required: true
+          schema:
+            type: string
+            example: abc123
+      requestBody:
+        description: New expiry date for the link
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Url'
+      responses:
+        '200':
+          description: Expiry updated successfully
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+      security:
+        - linkify_auth:
+            - write:links
+            - read:links
+
+  /shorturl/{short_code}/url:
+    post:
+      tags:
+        - url
+      summary: Update link destination
+      description: Change the destination URL of an existing short link.
+      operationId: updateShortCodeLink
+      parameters:
+        - name: short_code
+          in: path
+          description: Short URL code
+          required: true
+          schema:
+            type: string
+            example: abc123
+      requestBody:
+        description: New destination URL
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Url'
+      responses:
+        '200':
+          description: Destination updated successfully
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+      security:
+        - linkify_auth:
+            - write:links
+            - read:links
+
+  /user:
+    get:
+      tags:
+        - user
+      summary: Return current user information
+      description: Fetch profile details of the currently logged-in user.
+      operationId: getUserInfo
+      responses:
+        '200':
+          description: User information retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+      security:
+        - linkify_auth:
+            - write:links
+            - read:links
+
+    post:
+      tags:
+        - user
+      summary: Update name or email
+      description: Update the user's name or email. Check schema for details.
+      operationId: updateUserEmail
+      requestBody:
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/Name'
+                - $ref: '#/components/schemas/Email'
+      responses:
+        '200':
+          description: User information updated successfully
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+      security:
+        - linkify_auth:
+            - write:links
+            - read:links
+
+    delete:
+      tags:
+        - user
+      summary: Delete the currently logged-in user's account
+      description: Permanently remove the user's account and associated data.
+      operationId: delUser
+      responses:
+        '204':
+          description: Account deleted successfully (no content)
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+      security:
+        - linkify_auth:
+            - write:links
+            - read:links
+
+components:
+  responses:
+    GoodRequest:
+      description: Good result
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ResponseBody"
+    BadRequest:
+      description: A bad request was made
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ResponseBody"
+    Unauthorized:
+      description: Unauthorized (missing or invalid credentials)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ResponseBody"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ResponseBody"
+
+  schemas:
+    Name:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Bob
+    Email:
+      type: object
+      properties:
+        email:
+          type: string
+          example: dog@doggie.com
+    Password:
+      type: object
+      properties:
+        password:
+          type: string
+          example: hunter2
+    Url:
+      type: object
+      properties:
+        url:
+          type: string
+          example: https://example.com/
+    Auth:
+      required:
+        - email
+        - password
+      type: object
+      properties:
+        email:
+          type: string
+          example: dog@doggie.com
+        password:
+          type: string
+          example: hunter2
+    Registration:
+      required:
+        - name
+        - email
+        - password
+      type: object
+      properties:
+        name:
+          type: string
+          example: Bob
+        email:
+          type: string
+          example: dog@doggie.com
+        password:
+          type: string
+          example: hunter2
+    Link:
+      type: object
+      properties:
+        created:
+          type: string
+          format: date-time
+          example: 2017-07-21T17:32:28Z
+        expires:
+          type: string
+          format: date-time
+          example: 2017-07-22T17:32:28Z
+        url:
+          type: string
+          format: uri
+          example: https://www.example.com
+        shortcode:
+          type: string
+          example: abc123
+        clicks:
+          type: integer
+          example: 10
+    Collection:
+      type: array
+      items:
+        $ref: "#/components/schemas/Link"
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Bob
+        email:
+          type: string
+          example: dog@doggie.com
+
+    ResponseBody:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: "A descriptive error message"
+      required:
+        - code
+        - message
+
+  securitySchemes:
+    linkify_auth:
+      type: apiKey
+      in: cookie
+      name: session
