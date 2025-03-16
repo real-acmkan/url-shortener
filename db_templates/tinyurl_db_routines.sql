@@ -54,11 +54,12 @@ DELIMITER ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE PROCEDURE `create_user`(
+    IN user_name VARCHAR(255),
     IN user_email VARCHAR(255),
     IN password_hash CHAR(64) -- SHA-256 hash length
 )
 BEGIN
-    INSERT INTO Users (email, password_hash) VALUES (user_email, password_hash);
+    INSERT INTO Users (name, email, password_hash) VALUES (user_name, user_email, password_hash);
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
