@@ -171,6 +171,13 @@ BEGIN
     SELECT id FROM Users where email = user_email;
 END ;;
 DELIMITER ;
+
+DELIMITER ;;
+CREATE PROCEDURE `get_name_by_email`(IN user_email VARCHAR(255))
+BEGIN
+    SELECT name FROM Users where email = user_email;
+END ;;
+DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
