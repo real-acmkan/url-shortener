@@ -6,7 +6,7 @@ import string
 import mariadb
 import hashlib
 import datetime
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, Unauthorized
 from flask import Flask, jsonify, session, request, redirect, render_template
 
 
@@ -49,6 +49,10 @@ app.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(minutes=30)
 def handle_bad_request(e):
     return jsonify({'code':'400', 'message':'Bad Request'}), 400
 
+@app.errorhandler(Unauthorized)
+def handle_unauth_request(e):
+    return jsonify({'code':'401', 'message':'Unauthorized'}), 401
+
 @app.route('/', methods=['GET'])
 def index():
     return render_template("index.html")
@@ -69,7 +73,7 @@ def redirect_url(short_id):
 @app.route('/auth/logout', methods=['GET'])
 def logout():
     if 'email' not in session:
-        raise werkzeug.exceptions.Badrequest 
+        raise BadRequest 
     session.pop('email', default=None)
     session.pop('id', default=None)
     return jsonify({'status':'logged out.'}), 200
@@ -79,7 +83,7 @@ def login():
     email = request.form.get("email", default=None)
     pw = request.form.get("password", default=None)
     if email == None or pw == None:
-        raise werkzeug.exceptions.BadRequest
+        raise BadRequest
     pconn, cur = get_conn()
     result = cur.callproc("login", (email,create_digest(pw)))
 
@@ -101,7 +105,7 @@ def register():
     email = request.form.get("email")
     pw = request.form.get("password")
     if email == None or pw == None:
-        return jsonify({'status':'bad username or password'})
+        raise BadRequest
     pconn, cur = get_conn()
     cur.callproc("get_userid_by_email", (email,))
     result = cur.fetchall()
@@ -113,7 +117,7 @@ def register():
         pconn.commit()
 
     except Exception:
-        return jsonify({'error':'failed to create user. please try again'})
+        raise BadRequest
     finally:
         cur.close()
         pconn.close()
@@ -135,7 +139,7 @@ def forgot():
 @app.route('/auth/validate-reset', methods=['GET'])
 def reset(token):
     if 'reset' not in session or create_digest(token) != session['reset']:
-        return jsonify({'status':'bad token'})
+        raise BadRequest
     session.pop('reset', default=None)
     return jsonify({'status':'password reset successful'})
     # pconn = pool.get_connection()
@@ -150,9 +154,9 @@ def reset_pass():
 @app.route('/auth/verify', methods=['GET'])
 def verify(token):
     if 'verify' not in session:
-        return jsonify({'status':'already verified'})
+        raise BadRequest
     if 'email' not in session:
-        return jsonify({'status':'not logged in'})   
+        raise Unauthorized
     hashed = create_digest(token)
     if hashed != session['verify']:
         return jsonify({'status':'invalid verification token'})
@@ -167,13 +171,13 @@ def verify(token):
 @app.route('/user', methods=['GET', 'POST', 'DELETE'])
 def update_email():
     if 'email' not in session:
-        return jsonify({'status':'unauthorized'})
+        raise Unauthorized
 
 
 @app.route('/shorturls', methods=['GET', 'POST'])
 def shortcodes():
     if 'email' not in session:
-        return jsonify({'status':'unauthorized'})
+        raise Unauthorized
     url = request.form.get("url")
     if url is None:
         return jsonify({'status':'invalid url'})
@@ -191,7 +195,7 @@ def shortcodes():
 @app.route('/shorturl/{short_code}', methods=['GET', 'DELETE'])
 def individual_shortcodes(short_code):
     if 'email' not in session:
-        return jsonify({'status':'unauthorized'})
+        raise Unauthorized
     url = request.form.get("url")
     if url is None:
         return jsonify({'status':'invalid url'})
@@ -204,7 +208,7 @@ def individual_shortcodes(short_code):
 @app.route('/shorturl/{short_code}/expiry', methods=['POST'])
 def update_link_expiry(short_code):
     if 'email' not in session:
-        return jsonify({'status':'unauthorized'})
+        raise Unauthorized
     pconn, cur = get_conn()
     result = cur.callproc("get_user_urls", (session["id"]))
     pconn.commit()
@@ -213,7 +217,7 @@ def update_link_expiry(short_code):
 @app.route('/shorturl/{short_code}/url', methods=['POST'])
 def update_link_url(short_code):
     if 'email' not in session:
-        return jsonify({'status':'unauthorized'})
+        raise Unauthorized
     pconn, cur = get_conn()
     result = cur.callproc("update_url_expiration", (session["id"]))
     pconn.commit()
