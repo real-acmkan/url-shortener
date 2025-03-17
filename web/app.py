@@ -80,9 +80,10 @@ def redirect_url(short_id):
 
 @app.route('/auth/logout', methods=['GET'])
 def logout():
-    if 'email' in session:
-        session.pop('email', default=None)
-        session.pop('id', default=None)
+    if 'id' in session:
+        # session.pop('email', default=None)
+        # session.pop('id', default=None)
+        session.clear()
     return jsonify({'status':'logged out.'}), 200
 
 @app.route('/auth/login', methods=['POST'])
@@ -104,7 +105,7 @@ def login():
     session["id"] = id
     # if 'verify' in session:
     #     return jsonify({'status':'unverified'}), 200
-    print(type(id))
+    # print(type(id))
     cur.callproc("check_if_user_verified", (id,))
     verified = cur.fetchone()
     app.logger.info('user_verified check: %s', verified)
