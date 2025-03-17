@@ -34,6 +34,14 @@ def create_short():
     characters = string.ascii_letters + string.digits
     return ''.join(random.choice(characters) for _ in range(6))
 
+def get_user_post_login(pconn, cur, email):
+    cur.callproc("get_userid_by_email", (email,))
+    id = cur.fetchall()
+    # pconn.commit()
+    cur.callproc("get_name_by_email", (email,))
+    name = cur.fetchall()
+    # pconn.commit()
+    return str(id[0][0]), str(name[0][0])
 try:
     pool = create_connection_pool()
 except Exception as e:
@@ -72,40 +80,57 @@ def redirect_url(short_id):
 
 @app.route('/auth/logout', methods=['GET'])
 def logout():
-    if 'email' not in session:
-        raise BadRequest 
-    session.pop('email', default=None)
-    session.pop('id', default=None)
+    if 'email' in session:
+        session.pop('email', default=None)
+        session.pop('id', default=None)
     return jsonify({'status':'logged out.'}), 200
 
 @app.route('/auth/login', methods=['POST'])
 def login():
-    email = request.form.get("email", default=None)
-    pw = request.form.get("password", default=None)
-    if email == None or pw == None:
+    request_data = request.get_json()
+    if 'email' not in request_data or 'password' not in request_data:
         raise BadRequest
+    email = request_data["email"]
+    pw = request_data["password"]
     pconn, cur = get_conn()
-    result = cur.callproc("login", (email,create_digest(pw)))
-
-    if not result:
-        return jsonify({'status':'invalid username or password'})
-    if 'verify' in session:
-        return jsonify({'status':'unverified'})
-    cur.callproc("get_userid_by_email", (email,))
-    id = cur.fetchall()
-    pconn.commit()
+    cur.callproc("login", (email,create_digest(pw)))
+    # pconn.commit()
+    result = cur.fetchall()
+    # app.logger.info('userid check: %s', cur.fetchall())
+    if 'Login Successful' not in result[0]:
+        return jsonify({'status':'invalid username or password'}), 200
+    id, name = get_user_post_login(pconn, cur, email)
+    session["name"] = name
+    session["id"] = id
+    # if 'verify' in session:
+    #     return jsonify({'status':'unverified'}), 200
+    print(type(id))
+    cur.callproc("check_if_user_verified", (id,))
+    verified = cur.fetchone()
+    app.logger.info('user_verified check: %s', verified)
+    if not verified:
+        session["e"] = email
+        user = f"{name}-{id}"
+        app.logger.info('user token %s', user)
+        # token =  f"{id}{os.urandom(16).hex()}"
+        # TODO: send email to user
+        # session["verify"] = token
+        token = create_digest(user)
+        app.logger.info('verify token %s', token)
+        return jsonify({'status':'unverified'}), 200
     cur.close()
     pconn.close()
     session["email"] = email
-    session["id"] = id
-    return jsonify({'status':'login successful'})
+    return jsonify({'status':'login successful'}), 200
 
 @app.route('/auth/register', methods=['POST'])
 def register():
-    email = request.form.get("email")
-    pw = request.form.get("password")
-    if email == None or pw == None:
+    request_data = request.get_json()
+    if 'name' not in request_data or 'email' not in request_data or 'password' not in request_data:
         raise BadRequest
+    email = request_data["email"]
+    pw = request_data["password"]
+    name = request_data["name"]
     pconn, cur = get_conn()
     cur.callproc("get_userid_by_email", (email,))
     result = cur.fetchall()
@@ -113,24 +138,21 @@ def register():
     if result:
         return jsonify({'error':'user already exists'})
     try:
-        cur.callproc("create_user", (email,create_digest(pw)))
+        cur.callproc("create_user", (name,email,create_digest(pw)))
         pconn.commit()
-
     except Exception:
         raise BadRequest
     finally:
         cur.close()
         pconn.close()
-    token = os.urandom(16).hex()
-    app.logger.info('verify token %s', token)
-    token = create_digest(token)
-    session['verify'] = token
+    # session['verify'] = token
     return jsonify({'status':'successfully registered'})
 
 @app.route('/auth/forgot-password', methods=['POST'])
 def forgot():
     token = os.urandom(16).hex()
     # app.logger.info('userid check: %s', result)
+    # TODO: send email to user
     print(f"reset token: {token}")
     token = create_digest(token)
     session['reset'] = token
@@ -152,27 +174,36 @@ def reset_pass():
     pass
 
 @app.route('/auth/verify', methods=['GET'])
-def verify(token):
-    if 'verify' not in session:
-        raise BadRequest
-    if 'email' not in session:
+def verify():
+    if 'id' not in session or 'e' not in session:
         raise Unauthorized
-    hashed = create_digest(token)
-    if hashed != session['verify']:
+    token = request.args.get('token')
+    hashed = create_digest(f"{session['name']}-{session['id']}")
+    if hashed != token:
         return jsonify({'status':'invalid verification token'})
     pconn, cur = get_conn()
-    id = cur.callproc('get_userid_by_email', (session['email']))
-    result = cur.callproc("verify_user", (id,))
-    if not result:
-        return jsonify({'status':'failed to verify. please try again'})
-    session.pop('verify', default=None)
+    # id = cur.callproc('get_userid_by_email', (session['email']))
+    cur.callproc("verify_user", (session["id"],))
+    # if not result:
+    #     return jsonify({'status':'failed to verify. please try again'})
+    pconn.commit()
+    cur.close()
+    pconn.close()
+    session['email'] = session['e']
+    session.pop('e', default=None)
     return jsonify({'status':'successfully verified'})
 
 @app.route('/user', methods=['GET', 'POST', 'DELETE'])
 def update_email():
     if 'email' not in session:
         raise Unauthorized
-
+    
+    if request.method == 'GET':
+        return jsonify({'status':'works, pretend for now'}), 200
+    if request.method == 'POST':
+        return jsonify({'status':'works, pretend for now'}), 200
+    if request.method == 'DELETE':
+        return jsonify({'status':'works, pretend for now'}), 200
 
 @app.route('/shorturls', methods=['GET', 'POST'])
 def shortcodes():
