@@ -373,6 +373,13 @@ BEGIN
     INSERT INTO ValidatedEmails (user_id) VALUES (user_id);
 END ;;
 DELIMITER ;
+
+DELIMITER ;;
+CREATE PROCEDURE `check_if_user_verified`(IN id INT)
+BEGIN
+    SELECT user_id from ValidatedEmails where user_id = id;
+END ;;
+DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
