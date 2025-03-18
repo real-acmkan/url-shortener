@@ -6,9 +6,21 @@ import string
 import mariadb
 import hashlib
 import datetime
+from cryptography.fernet import Fernet
 from werkzeug.exceptions import BadRequest, Unauthorized
 from flask import Flask, jsonify, session, request, redirect, render_template
 
+
+encryption_key = Fernet.generate_key()
+fernet = Fernet(encryption_key)
+
+def encrypt_data(data):
+    encrypted_data = fernet.encrypt(data.encode())
+    return encrypted_data
+
+def decrypt_data(encrypted_data):
+    decrypted_data = fernet.decrypt(encrypted_data).decode()
+    return decrypted_data
 
 def create_connection_pool():
     pool = mariadb.ConnectionPool(
@@ -151,19 +163,37 @@ def register():
 
 @app.route('/auth/forgot-password', methods=['POST'])
 def forgot():
+    request_data = request.get_json()
+    if 'email' not in request_data:
+        raise BadRequest
     token = os.urandom(16).hex()
-    # app.logger.info('userid check: %s', result)
+    pconn, cur = get_conn()
+    cur.callproc("get_userid_by_email", (request_data["email"],))
+    id = cur.fetchone()
     # TODO: send email to user
-    print(f"reset token: {token}")
+    # print(f"reset token: {token}")
     token = create_digest(token)
-    session['reset'] = token
+    app.logger.info('reset token: %s', token)
+    cur.callproc("set_reset_token", (str(id[0]),token))
+    # session['reset'] = token
+    pconn.close()
     return jsonify({'status':'reset code sent to email'})
     
 @app.route('/auth/validate-reset', methods=['GET'])
-def reset(token):
-    if 'reset' not in session or create_digest(token) != session['reset']:
+def reset():
+    token = request.args.get('token')
+    if token == None:
         raise BadRequest
-    session.pop('reset', default=None)
+    pconn, cur = get_conn()
+    cur.callproc("get_reset_token", (token[0],))
+    result = cur.fetchall()
+    cur.close()
+    pconn.close()
+    if token[1] != result[0]:
+        return jsonify({'status':'invalid reset token'}), 200
+    # if 'reset' not in session or create_digest(token) != session['reset']:
+    #     raise BadRequest
+    # session.pop('reset', default=None)
     return jsonify({'status':'password reset successful'})
     # pconn = pool.get_connection()
     # cur = pconn.cursor()
@@ -179,9 +209,11 @@ def verify():
     if 'id' not in session or 'e' not in session:
         raise Unauthorized
     token = request.args.get('token')
+    if token == None:
+        raise BadRequest
     hashed = create_digest(f"{session['name']}-{session['id']}")
     if hashed != token:
-        return jsonify({'status':'invalid verification token'})
+        return jsonify({'status':'invalid verification token'}), 200
     pconn, cur = get_conn()
     # id = cur.callproc('get_userid_by_email', (session['email']))
     cur.callproc("verify_user", (session["id"],))

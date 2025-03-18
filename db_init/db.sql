@@ -141,7 +141,7 @@ UNLOCK TABLES;
 DELIMITER ;;
 CREATE DEFINER=`root`@`%` PROCEDURE `check_if_user_verified`(IN id INT)
 BEGIN
-    SELECT user_id from ValidatedEmails where user_id = id;
+    SELECT user_id from validatedemails where user_id = id;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -165,7 +165,7 @@ CREATE DEFINER=`root`@`%` PROCEDURE `create_url`(
     IN expiration_date TIMESTAMP
 )
 BEGIN
-    INSERT INTO URLs (short_code, original_url, user_id, expiration_date) 
+    INSERT INTO urls (short_code, original_url, user_id, expiration_date) 
     VALUES (short_code, original_url, user_id, expiration_date);
 END ;;
 DELIMITER ;
@@ -189,7 +189,7 @@ CREATE DEFINER=`root`@`%` PROCEDURE `create_user`(
     IN password_hash CHAR(64) 
 )
 BEGIN
-    INSERT INTO Users (name, email, password_hash) VALUES (user_name, user_email, password_hash);
+    INSERT INTO users (name, email, password_hash) VALUES (user_name, user_email, password_hash);
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -208,7 +208,7 @@ DELIMITER ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`%` PROCEDURE `delete_url`(IN short_code VARCHAR(20), IN user_id INT)
 BEGIN
-    DELETE FROM URLs WHERE short_code = short_code AND user_id = user_id;
+    DELETE FROM urls WHERE short_code = short_code AND user_id = user_id;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -232,9 +232,9 @@ CREATE DEFINER=`root`@`%` PROCEDURE `edit_url`(
 )
 BEGIN
     
-    IF EXISTS (SELECT 1 FROM URLs WHERE short_code = short_code AND user_id = user_id) THEN
+    IF EXISTS (SELECT 1 FROM urls WHERE short_code = short_code AND user_id = user_id) THEN
         
-        UPDATE URLs 
+        UPDATE urls 
         SET original_url = new_original_url 
         WHERE short_code = short_code AND user_id = user_id;
         
@@ -260,7 +260,7 @@ DELIMITER ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`%` PROCEDURE `get_clicks`(IN short_code VARCHAR(20))
 BEGIN
-    SELECT click_count FROM URLs WHERE short_code = short_code;
+    SELECT click_count FROM urls WHERE short_code = short_code;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -279,7 +279,7 @@ DELIMITER ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`%` PROCEDURE `get_name_by_email`(IN user_email VARCHAR(255))
 BEGIN
-    SELECT name FROM Users where email = user_email;
+    SELECT name FROM users where email = user_email;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -300,7 +300,7 @@ CREATE DEFINER=`root`@`%` PROCEDURE `get_reset_token`(
     IN id INT
 )
 BEGIN
-    SELECT token from PasswordResets where user_id = id;
+    SELECT token from passwordresets where user_id = id;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -319,7 +319,7 @@ DELIMITER ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`%` PROCEDURE `get_url`(IN short_code VARCHAR(20))
 BEGIN
-    SELECT original_url FROM URLs WHERE short_code = short_code;
+    SELECT original_url FROM urls WHERE short_code = short_code;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -338,7 +338,7 @@ DELIMITER ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`%` PROCEDURE `get_userid_by_email`(IN user_email VARCHAR(255))
 BEGIN
-    SELECT id FROM Users where email = user_email;
+    SELECT id FROM users where email = user_email;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -357,7 +357,7 @@ DELIMITER ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`%` PROCEDURE `get_user_urls`(IN user_id INT)
 BEGIN
-    SELECT id, short_code, original_url, expiration_date, click_count FROM URLs WHERE user_id = user_id;
+    SELECT id, short_code, original_url, expiration_date, click_count FROM urls WHERE user_id = user_id;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -380,7 +380,7 @@ CREATE DEFINER=`root`@`%` PROCEDURE `login`(
 )
 BEGIN
     DECLARE stored_hash CHAR(64);
-    SELECT password_hash INTO stored_hash FROM Users WHERE email = user_email;
+    SELECT password_hash INTO stored_hash FROM users WHERE email = user_email;
     
     IF stored_hash IS NOT NULL AND stored_hash = password_attempt THEN
         SELECT 'Login Successful' AS status;
@@ -405,7 +405,7 @@ DELIMITER ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`%` PROCEDURE `log_click`(IN short_code VARCHAR(20))
 BEGIN
-    UPDATE URLs SET click_count = click_count + 1 WHERE short_code = short_code;
+    UPDATE urls SET click_count = click_count + 1 WHERE short_code = short_code;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -431,18 +431,18 @@ BEGIN
     DECLARE user_id INT;
 
     
-    SELECT user_id INTO user_id FROM PasswordResets 
-    WHERE user_id = (SELECT id FROM Users WHERE email = user_email)
+    SELECT user_id INTO user_id FROM passwordresets 
+    WHERE user_id = (SELECT id FROM users WHERE email = user_email)
     AND token = reset_token 
     AND created_at >= NOW() - INTERVAL 1 HOUR; 
 
     
     IF user_id IS NOT NULL THEN
         
-        UPDATE Users SET password_hash = new_password_hash WHERE id = user_id;
+        UPDATE users SET password_hash = new_password_hash WHERE id = user_id;
 
         
-        DELETE FROM PasswordResets WHERE user_id = user_id;
+        DELETE FROM passwordresets WHERE user_id = user_id;
 
         SELECT 'Password reset successful' AS status;
     ELSE
@@ -469,7 +469,7 @@ CREATE DEFINER=`root`@`%` PROCEDURE `set_reset_token`(
     IN token CHAR(64) 
 )
 BEGIN
-    INSERT INTO PasswordResets (user_id, token) VALUES (user_id, token);
+    INSERT INTO passwordresets (user_id, token) VALUES (user_id, token);
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -491,7 +491,7 @@ CREATE DEFINER=`root`@`%` PROCEDURE `update_url_expiration`(
     IN new_expiration TIMESTAMP
 )
 BEGIN
-    UPDATE URLs SET expiration_date = new_expiration WHERE short_code = short_code;
+    UPDATE urls SET expiration_date = new_expiration WHERE short_code = short_code;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -513,8 +513,8 @@ CREATE DEFINER=`root`@`%` PROCEDURE `update_user_email`(
     IN new_email VARCHAR(255)
 )
 BEGIN
-    UPDATE Users SET email = new_email WHERE id = user_id;
-    DELETE FROM ValidatedEmails WHERE user_id = user_id; 
+    UPDATE users SET email = new_email WHERE id = user_id;
+    DELETE FROM validatedemails WHERE user_id = user_id; 
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -533,7 +533,7 @@ DELIMITER ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`%` PROCEDURE `verify_user`(IN user_id INT)
 BEGIN
-    INSERT INTO ValidatedEmails (user_id) VALUES (user_id);
+    INSERT INTO validatedemails (user_id) VALUES (user_id);
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
