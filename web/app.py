@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import views
 import random
 import string
 import mariadb
@@ -63,7 +64,13 @@ except Exception as e:
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = open(os.getenv("SECRET_KEY"), "r").read()
-app.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(minutes=30)
+app.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(minutes=15)
+
+app.add_url_rule('/', view_func=views.index)
+app.add_url_rule('/login', view_func=views.login_page)
+app.add_url_rule('/register', view_func=views.register_page)
+app.add_url_rule('/dashboard', view_func=views.dashboard)
+app.add_url_rule('/profile', view_func=views.profile)
 
 @app.errorhandler(BadRequest)
 def handle_bad_request(e):
@@ -73,9 +80,6 @@ def handle_bad_request(e):
 def handle_unauth_request(e):
     return jsonify({'code':'401', 'message':'Unauthorized'}), 401
 
-@app.route('/', methods=['GET'])
-def index():
-    return render_template("index.html")
 
 @app.route('/<short_id>', methods=['GET'])
 def redirect_url(short_id):
@@ -166,18 +170,22 @@ def forgot():
     request_data = request.get_json()
     if 'email' not in request_data:
         raise BadRequest
-    token = os.urandom(16).hex()
     pconn, cur = get_conn()
     cur.callproc("get_userid_by_email", (request_data["email"],))
     id = cur.fetchone()
+    if not id:
+        return jsonify({'status':'if an account is associated with that email a reset link will be sent'}), 200
     # TODO: send email to user
     # print(f"reset token: {token}")
-    token = create_digest(token)
-    app.logger.info('reset token: %s', token)
+    token = os.urandom(16).hex()
+    reset_token = encrypt_data(f"{id}-{token}")
+    app.logger.info('reset token: %s', reset_token)
+    token = create_digest(reset_token)
     cur.callproc("set_reset_token", (str(id[0]),token))
     # session['reset'] = token
+    cur.close()
     pconn.close()
-    return jsonify({'status':'reset code sent to email'})
+    return jsonify({'status':'if an account is associated with that email a reset link will be sent'}), 200
     
 @app.route('/auth/validate-reset', methods=['GET'])
 def reset():
@@ -185,12 +193,19 @@ def reset():
     if token == None:
         raise BadRequest
     pconn, cur = get_conn()
-    cur.callproc("get_reset_token", (token[0],))
-    result = cur.fetchall()
+    try:
+        reset_token = decrypt_data(token)
+        id = str(reset_token.split("-")[0])
+        cur.callproc("get_reset_token", (id,))
+        result = cur.fetchall()
+        if not result:
+            return jsonify({'status':'invalid reset token'}), 200
+        if create_digest(reset_token) != result[0]:
+            return jsonify({'status':'invalid reset token'}), 200
+    except Exception:
+        return jsonify({'status':'invalid reset token'}), 200 
     cur.close()
     pconn.close()
-    if token[1] != result[0]:
-        return jsonify({'status':'invalid reset token'}), 200
     # if 'reset' not in session or create_digest(token) != session['reset']:
     #     raise BadRequest
     # session.pop('reset', default=None)

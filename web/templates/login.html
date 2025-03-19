@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Linkify</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --soft-white: #FFF2F2;
+            --light-blue: #A9B5DF;
+            --medium-blue: #7886C7;
+            --dark-blue: #2D336B;
+            --background-gradient: linear-gradient(135deg, var(--soft-white), var(--light-blue));
+        }
+        body {
+            background: var(--background-gradient);
+            color: var(--dark-blue);
+            font-family: Arial, sans-serif;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            padding: 30px;
+            background: var(--soft-white);
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+        .login-card h2 {
+            font-family: 'Ubuntu Mono', monospace;
+            font-weight: 700;
+            color: var(--dark-blue);
+            margin-bottom: 20px;
+        }
+        .btn-custom {
+            background: var(--medium-blue);
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            border-radius: 25px;
+            transition: all 0.3s;
+            color: #ffffff;
+            width: 100%;
+        }
+        .btn-custom:hover {
+            background: var(--dark-blue);
+        }
+        .form-control {
+            border-radius: 10px;
+            border: 1px solid var(--medium-blue);
+            padding: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #ffffff;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .form-control:focus {
+            border-color: var(--dark-blue);
+            box-shadow: 0 0 8px rgba(45, 51, 107, 0.3);
+        }
+        .form-group label {
+            display: block;
+            text-align: left;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div style="position: absolute; top: 20px; left: 20px; display: flex; align-items: center; gap: 10px;">
+        <img src="{{url_for('static', filename='test-logo_preview_rev_1.png')}}" alt="Linkify Logo" class="logo" style="width: 120px; height: 120px; object-fit: contain;">
+        <h2 style="font-family: 'Ubuntu Mono', monospace; font-weight: 700; color: var(--dark-blue); margin: 0;">Linkify</h2>
+    </div>
+    
+    <div class="container">
+        <div class="login-card">
+            <h2>Login to Linkify</h2>
+            <form onsubmit="event.preventDefault(); window.location.href='dashboard.html';">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" class="form-control" id="email" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" class="form-control" id="password" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="btn btn-custom">Login</button>
+                <p class="text-center mt-3"><a href="#">Forgot Password?</a></p>
+                <p class="text-center">Don't have an account? <a href="signup.html">Sign up</a></p>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
