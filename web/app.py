@@ -17,7 +17,7 @@ fernet = Fernet(encryption_key)
 
 def encrypt_data(data):
     encrypted_data = fernet.encrypt(data.encode())
-    return encrypted_data
+    return encrypted_data.decode()
 
 def decrypt_data(encrypted_data):
     decrypted_data = fernet.decrypt(encrypted_data).decode()
@@ -118,7 +118,6 @@ def login():
         return jsonify({'status':'invalid username or password'}), 200
     id, name = get_user_post_login(pconn, cur, email)
     session["name"] = name
-    session["id"] = id
     # if 'verify' in session:
     #     return jsonify({'status':'unverified'}), 200
     # print(type(id))
@@ -138,6 +137,7 @@ def login():
     cur.close()
     pconn.close()
     session["email"] = email
+    session["id"] = id
     return jsonify({'status':'login successful'}), 200
 
 @app.route('/auth/register', methods=['POST'])
@@ -172,18 +172,21 @@ def forgot():
         raise BadRequest
     pconn, cur = get_conn()
     cur.callproc("get_userid_by_email", (request_data["email"],))
-    id = cur.fetchone()
+    id = str(cur.fetchone()[0])
     if not id:
+        app.logger.info("Something went terribly wrong man")
         return jsonify({'status':'if an account is associated with that email a reset link will be sent'}), 200
     # TODO: send email to user
     # print(f"reset token: {token}")
     token = os.urandom(16).hex()
-    reset_token = encrypt_data(f"{id}-{token}")
+    reset_token = encrypt_data(f"{id}-{request_data['email']}-{token}").strip("=")
     app.logger.info('reset token: %s', reset_token)
     token = create_digest(reset_token)
-    cur.callproc("set_reset_token", (str(id[0]),token))
+    app.logger.info('hashed reset token: %s', token)
+    cur.callproc("set_reset_token", (id,token,))
     # session['reset'] = token
     cur.close()
+    pconn.commit()
     pconn.close()
     return jsonify({'status':'if an account is associated with that email a reset link will be sent'}), 200
     
@@ -191,59 +194,74 @@ def forgot():
 def reset():
     token = request.args.get('token')
     if token == None:
+        app.logger.info('here')
         raise BadRequest
-    pconn, cur = get_conn()
     try:
-        reset_token = decrypt_data(token)
-        id = str(reset_token.split("-")[0])
+        app.logger.info("bulltshit: %s", token)
+        pconn, cur = get_conn()
+        reset_token = decrypt_data(f"{token}==")
+        id = reset_token.split("-")[0]
         cur.callproc("get_reset_token", (id,))
         result = cur.fetchall()
-        if not result:
-            return jsonify({'status':'invalid reset token'}), 200
-        if create_digest(reset_token) != result[0]:
-            return jsonify({'status':'invalid reset token'}), 200
-    except Exception:
-        return jsonify({'status':'invalid reset token'}), 200 
-    cur.close()
-    pconn.close()
-    # if 'reset' not in session or create_digest(token) != session['reset']:
-    #     raise BadRequest
-    # session.pop('reset', default=None)
-    return jsonify({'status':'password reset successful'})
-    # pconn = pool.get_connection()
-    # cur = pconn.cursor()
-    # cur.callproc('reset_password', ())
+        hashed = create_digest(token)
+        if not result or hashed != result[0][0]:
+            app.logger.info("user: %s", hashed)
+            app.logger.info("db: %s", result[0][0])
+            raise BadRequest
+        session["email"] = reset_token.split("-")[1]
+        session["reset"] = hashed
+    except Exception as e:
+        app.logger.info(e)
+        raise BadRequest
+    finally:    
+        cur.close()
+        pconn.close()
+    return render_template("reset.html")
 
 @app.route('/auth/reset-password/', methods=['POST'])
 def reset_pass():
+    if 'email' not in session or 'reset' not in session:
+        raise Unauthorized
+    request_data = request.get_json()
+    if 'password' not in request_data:
+        raise BadRequest
     pconn, cur = get_conn()
-    pass
+    cur.callproc('reset_password', (session['email'], session['hashed'], request_data['password'],))
+    result = cur.fetchall()
+    if 'Password reset successful' not in result[0]:
+        raise BadRequest
+    cur.close()
+    pconn.close()
+    return jsonify({'status':'Password successfully reset'})
 
 @app.route('/auth/verify', methods=['GET'])
 def verify():
-    if 'id' not in session or 'e' not in session:
+    if 'e' not in session:
         raise Unauthorized
     token = request.args.get('token')
     if token == None:
         raise BadRequest
-    hashed = create_digest(f"{session['name']}-{session['id']}")
+    pconn, cur = get_conn()
+    cur.callproc('get_userid_by_email', (session['e'],))    
+    id = str(cur.fetchone()[0])
+    hashed = create_digest(f"{session['name']}-{id}")
     if hashed != token:
         return jsonify({'status':'invalid verification token'}), 200
-    pconn, cur = get_conn()
-    # id = cur.callproc('get_userid_by_email', (session['email']))
-    cur.callproc("verify_user", (session["id"],))
+    cur.callproc("verify_user", (id,))
     # if not result:
     #     return jsonify({'status':'failed to verify. please try again'})
     pconn.commit()
     cur.close()
     pconn.close()
     session['email'] = session['e']
+    session['id'] = id
     session.pop('e', default=None)
-    return jsonify({'status':'successfully verified'})
+    return render_template("verify.html")
+    # return jsonify({'status':'successfully verified'})
 
 @app.route('/user', methods=['GET', 'POST', 'DELETE'])
 def update_email():
-    if 'email' not in session:
+    if 'id' not in session:
         raise Unauthorized
     
     if request.method == 'GET':
@@ -255,7 +273,7 @@ def update_email():
 
 @app.route('/shorturls', methods=['GET', 'POST'])
 def shortcodes():
-    if 'email' not in session:
+    if 'id' not in session:
         raise Unauthorized
     url = request.form.get("url")
     if url is None:
@@ -273,7 +291,7 @@ def shortcodes():
 
 @app.route('/shorturl/{short_code}', methods=['GET', 'DELETE'])
 def individual_shortcodes(short_code):
-    if 'email' not in session:
+    if 'id' not in session:
         raise Unauthorized
     url = request.form.get("url")
     if url is None:
@@ -286,7 +304,7 @@ def individual_shortcodes(short_code):
 
 @app.route('/shorturl/{short_code}/expiry', methods=['POST'])
 def update_link_expiry(short_code):
-    if 'email' not in session:
+    if 'id' not in session:
         raise Unauthorized
     pconn, cur = get_conn()
     result = cur.callproc("get_user_urls", (session["id"]))
@@ -295,7 +313,7 @@ def update_link_expiry(short_code):
     
 @app.route('/shorturl/{short_code}/url', methods=['POST'])
 def update_link_url(short_code):
-    if 'email' not in session:
+    if 'id' not in session:
         raise Unauthorized
     pconn, cur = get_conn()
     result = cur.callproc("update_url_expiration", (session["id"]))

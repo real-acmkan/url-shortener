@@ -297,10 +297,10 @@ DELIMITER ;
 /*!50003 SET collation_connection  = utf8mb3_uca1400_ai_ci */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`%` PROCEDURE `get_reset_token`(
-    IN id INT
+    IN uid INT
 )
 BEGIN
-    SELECT token from passwordresets where user_id = id;
+    SELECT token from passwordresets where user_id = uid;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
