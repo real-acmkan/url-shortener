@@ -224,11 +224,13 @@ def reset_pass():
         raise Unauthorized
     request_data = request.get_json()
     if 'password' not in request_data:
+        app.logger.info("Here")
         raise BadRequest
     pconn, cur = get_conn()
-    cur.callproc('reset_password', (session['email'], session['hashed'], request_data['password'],))
+    cur.callproc('reset_password', (session['email'], session['reset'], create_digest(request_data['password']),))
     result = cur.fetchall()
-    if 'Password reset successful' not in result[0]:
+    if 'Password reset successful' not in result[0][0]:
+        app.logger.info("wtf: %s", result)
         raise BadRequest
     cur.close()
     pconn.close()
