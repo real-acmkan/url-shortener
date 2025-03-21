@@ -233,6 +233,7 @@ def reset_pass():
         app.logger.info("wtf: %s", result)
         raise BadRequest
     cur.close()
+    pconn.commit()
     pconn.close()
     return jsonify({'status':'Password successfully reset'})
 
@@ -267,8 +268,10 @@ def update_email():
         raise Unauthorized
     
     if request.method == 'GET':
-        return jsonify({'status':'works, pretend for now'}), 200
+        info = {"id":session["id"], "name":session["name"], "email":session["email"]}
+        return jsonify(info), 200
     if request.method == 'POST':
+        request_data = request.get_json()
         return jsonify({'status':'works, pretend for now'}), 200
     if request.method == 'DELETE':
         return jsonify({'status':'works, pretend for now'}), 200
@@ -277,28 +280,42 @@ def update_email():
 def shortcodes():
     if 'id' not in session:
         raise Unauthorized
-    url = request.form.get("url")
-    if url is None:
-        return jsonify({'status':'invalid url'})
-    if not url.startswith("https://") or not url.startswith("http://"):
-        return jsonify({'status':'url must specify protocol (https or http)'})
-    
-    short = create_short()
-    pconn, cur = get_conn()
-    result = cur.callproc('create_url', (short, url, session['id'], "00:00:00"))
-    pconn.commit()
-    cur.close()
-    pconn.close()
-    return jsonify(result)
+    if request.method == "GET":
+        pconn, cur = get_conn()
+        cur.callproc("get_user_urls", (session["id"],))
+        result = cur.fetchall()
+        return jsonify(result), 200
+    if request.method == "POST":
+        request_data = request.get_json()
+        if "url" not in request_data:
+            raise BadRequest
+        if not request_data["url"].startswith("https://") or not request_data["url"].startswith("http://"):
+            raise BadRequest    
+        short = create_short()
+        pconn, cur = get_conn()
+        cur.callproc('create_url', (short, request_data['url'], session['id'], "00:00:00"))
+        pconn.commit()
+        # temp fix for now
+        cur.callproc("get_user_urls", (session[id],))
+        urls = cur.fetchall()
+        data = ""
+        for x in urls:
+            if request_data['url'] in x:
+                data = x
+                break
+        cur.close()
+        pconn.close()
+        return jsonify(data), 200
 
 @app.route('/shorturl/{short_code}', methods=['GET', 'DELETE'])
 def individual_shortcodes(short_code):
     if 'id' not in session:
         raise Unauthorized
-    url = request.form.get("url")
+    if request.method == "GET":
+        pconn, cur = get_conn()
+        cur.callproc("get_url", (short_code,))
     if url is None:
         return jsonify({'status':'invalid url'})
-    pconn, cur = get_conn()
     result = cur.callproc("delete_url", (url, session['id']))
     pconn.commit()
     return jsonify(result)
