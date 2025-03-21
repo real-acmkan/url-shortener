@@ -259,27 +259,27 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE PROCEDURE `reset_password`(
+CREATE PROCEDURE reset_password(
     IN user_email VARCHAR(255),
     IN reset_token CHAR(64),
-    IN new_password_hash CHAR(64) -- SHA-256 hashed password
+    IN new_password_hash CHAR(64) 
 )
 BEGIN
-    DECLARE user_id INT;
+    DECLARE user_id INT DEFAULT NULL;
+    
+    SELECT pr.user_id INTO user_id 
+    FROM passwordresets pr
+    JOIN users u ON pr.user_id = u.id
+    WHERE u.email = user_email
+    AND BINARY pr.token = reset_token  -- Ensure case-sensitive match
+    AND pr.created_at >= NOW() - INTERVAL 1 HOUR;
 
-    -- Check if the token exists and get the associated user_id
-    SELECT user_id INTO user_id FROM PasswordResets 
-    WHERE user_id = (SELECT id FROM Users WHERE email = user_email)
-    AND token = reset_token 
-    AND created_at >= NOW() - INTERVAL 1 HOUR; -- Token expires after 1 hour
-
-    -- If a valid user_id is found, proceed with password reset
     IF user_id IS NOT NULL THEN
-        -- Update user's password
-        UPDATE Users SET password_hash = new_password_hash WHERE id = user_id;
-
-        -- Remove the used reset token
-        DELETE FROM PasswordResets WHERE user_id = user_id;
+        -- Update password
+        UPDATE users SET password_hash = new_password_hash WHERE id = user_id;
+        
+        -- Remove token after use
+        DELETE FROM passwordresets WHERE user_id = user_id AND BINARY token = reset_token;
 
         SELECT 'Password reset successful' AS status;
     ELSE
