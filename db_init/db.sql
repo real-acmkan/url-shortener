@@ -24,14 +24,14 @@ DROP TABLE IF EXISTS `passwordresets`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `passwordresets` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_id` int(11) NOT NULL,
-  `token` varchar(255) NOT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `fk_passwordresets_user` (`user_id`),
-  CONSTRAINT `fk_passwordresets_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `passwordresets_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `user_id` INT NOT NULL,
+    `token` VARCHAR(255) NOT NULL,
+    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `unique_user_reset` (`user_id`),
+    KEY `fk_passwordresets_user` (`user_id`),
+    CONSTRAINT `fk_passwordresets_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -297,10 +297,10 @@ DELIMITER ;
 /*!50003 SET collation_connection  = utf8mb3_uca1400_ai_ci */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`%` PROCEDURE `get_reset_token`(
-    IN uid INT
+    IN id INT
 )
 BEGIN
-    SELECT token from passwordresets where user_id = uid;
+    SELECT token from passwordresets where user_id = id;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -422,27 +422,27 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb3 */ ;
 /*!50003 SET collation_connection  = utf8mb3_uca1400_ai_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`%` PROCEDURE `reset_password`(
+CREATE PROCEDURE reset_password(
     IN user_email VARCHAR(255),
     IN reset_token CHAR(64),
     IN new_password_hash CHAR(64) 
 )
 BEGIN
-    DECLARE user_id INT;
-
+    DECLARE user_id INT DEFAULT NULL;
     
-    SELECT user_id INTO user_id FROM passwordresets 
-    WHERE user_id = (SELECT id FROM users WHERE email = user_email)
-    AND token = reset_token 
-    AND created_at >= NOW() - INTERVAL 1 HOUR; 
+    SELECT pr.user_id INTO user_id 
+    FROM passwordresets pr
+    JOIN users u ON pr.user_id = u.id
+    WHERE u.email = user_email
+    AND BINARY pr.token = reset_token  -- Ensure case-sensitive match
+    AND pr.created_at >= NOW() - INTERVAL 1 HOUR;
 
-    
     IF user_id IS NOT NULL THEN
-        
+        -- Update password
         UPDATE users SET password_hash = new_password_hash WHERE id = user_id;
-
         
-        DELETE FROM passwordresets WHERE user_id = user_id;
+        -- Remove token after use
+        DELETE FROM passwordresets WHERE user_id = user_id AND BINARY token = reset_token;
 
         SELECT 'Password reset successful' AS status;
     ELSE
@@ -469,7 +469,8 @@ CREATE DEFINER=`root`@`%` PROCEDURE `set_reset_token`(
     IN token CHAR(64) 
 )
 BEGIN
-    INSERT INTO passwordresets (user_id, token) VALUES (user_id, token);
+    DELETE FROM passwordresets WHERE user_id = user_id;
+    INSERT INTO passwordresets (user_id, token, created_at) VALUES (user_id, token, NOW());
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
