@@ -55,6 +55,21 @@ def get_user_post_login(pconn, cur, email):
     name = cur.fetchall()
     # pconn.commit()
     return str(id[0][0]), str(name[0][0])
+
+def get_short_info(short_code, id):
+    pconn, cur = get_conn()
+    cur.callproc("get_user_urls", (id,))
+    results = cur.fetchall()
+    hit = None
+    for li in results:
+        if short_code in li:
+            hit = li
+            break
+    cur.close()
+    pconn.close()
+    return hit
+
+
 try:
     pool = create_connection_pool()
 except Exception as e:
@@ -86,9 +101,12 @@ def redirect_url(short_id):
     if not re.search("^[A-Za-z0-9]{6}$", short_id):
         return render_template('index.html')
     pconn, cur = get_conn()
-    url = cur.callproc("get_url", (short_id,))
+    cur.callproc("get_url", (short_id,))
+    url = cur.fetchone()
     if url:
         cur.callproc("log_click", (short_id,))
+        pconn.commit()
+        cur.close()
         pconn.close()
         return redirect(url)
     pconn.close()
@@ -97,8 +115,6 @@ def redirect_url(short_id):
 @app.route('/auth/logout', methods=['GET'])
 def logout():
     if 'id' in session:
-        # session.pop('email', default=None)
-        # session.pop('id', default=None)
         session.clear()
     return jsonify({'status':'logged out.'}), 200
 
@@ -111,16 +127,11 @@ def login():
     pw = request_data["password"]
     pconn, cur = get_conn()
     cur.callproc("login", (email,create_digest(pw)))
-    # pconn.commit()
     result = cur.fetchall()
-    # app.logger.info('userid check: %s', cur.fetchall())
     if 'Login Successful' not in result[0]:
         return jsonify({'status':'invalid username or password'}), 200
     id, name = get_user_post_login(pconn, cur, email)
     session["name"] = name
-    # if 'verify' in session:
-    #     return jsonify({'status':'unverified'}), 200
-    # print(type(id))
     cur.callproc("check_if_user_verified", (id,))
     verified = cur.fetchone()
     app.logger.info('user_verified check: %s', verified)
@@ -151,7 +162,6 @@ def register():
     pconn, cur = get_conn()
     cur.callproc("get_userid_by_email", (email,))
     result = cur.fetchall()
-    # app.logger.info('userid check: %s', result)
     if result:
         return jsonify({'error':'user already exists'})
     try:
@@ -162,7 +172,6 @@ def register():
     finally:
         cur.close()
         pconn.close()
-    # session['verify'] = token
     return jsonify({'status':'successfully registered'})
 
 @app.route('/auth/forgot-password', methods=['POST'])
@@ -184,7 +193,6 @@ def forgot():
     token = create_digest(reset_token)
     app.logger.info('hashed reset token: %s', token)
     cur.callproc("set_reset_token", (id,token,))
-    # session['reset'] = token
     cur.close()
     pconn.commit()
     pconn.close()
@@ -251,8 +259,6 @@ def verify():
     if hashed != token:
         return jsonify({'status':'invalid verification token'}), 200
     cur.callproc("verify_user", (id,))
-    # if not result:
-    #     return jsonify({'status':'failed to verify. please try again'})
     pconn.commit()
     cur.close()
     pconn.close()
@@ -260,7 +266,6 @@ def verify():
     session['id'] = id
     session.pop('e', default=None)
     return render_template("verify.html")
-    # return jsonify({'status':'successfully verified'})
 
 @app.route('/user', methods=['GET', 'POST', 'DELETE'])
 def update_email():
@@ -272,7 +277,16 @@ def update_email():
         return jsonify(info), 200
     if request.method == 'POST':
         request_data = request.get_json()
-        return jsonify({'status':'works, pretend for now'}), 200
+        if "name" not in request_data or "email" not in request_data:
+            raise BadRequest
+        if "email" in request_data:
+            pconn, cur = get_conn()
+            cur.callproc("update_user_email", (session["id"], request_data["email"]))
+            pconn.commit()
+            cur.close()
+            pconn.close()
+            return jsonify({'status':'success'}), 200
+        return jsonify({'status':'works, pretend for now that name was updated'}), 200
     if request.method == 'DELETE':
         return jsonify({'status':'works, pretend for now'}), 200
 
@@ -284,60 +298,86 @@ def shortcodes():
         pconn, cur = get_conn()
         cur.callproc("get_user_urls", (session["id"],))
         result = cur.fetchall()
-        return jsonify(result), 200
+        for row in result:
+            row = jsonify({'expires':row[3],'url':row[2],'shortcode':row[1],'clicks':row[4]})
+        return result, 200
     if request.method == "POST":
         request_data = request.get_json()
         if "url" not in request_data:
             raise BadRequest
-        if not request_data["url"].startswith("https://") or not request_data["url"].startswith("http://"):
+        if not request_data["url"].startswith("https://") and not request_data["url"].startswith("http://"):
             raise BadRequest    
         short = create_short()
+        ts = datetime.datetime.now()
+        expiry = ts + datetime.timedelta(days=15)
+        timestamp = expiry.strftime('%Y-%m-%d %H:%M:%S')
         pconn, cur = get_conn()
-        cur.callproc('create_url', (short, request_data['url'], session['id'], "00:00:00"))
+        cur.callproc('create_url', (short, request_data['url'], session['id'], timestamp))
         pconn.commit()
-        # temp fix for now
-        cur.callproc("get_user_urls", (session[id],))
-        urls = cur.fetchall()
-        data = ""
-        for x in urls:
-            if request_data['url'] in x:
-                data = x
-                break
         cur.close()
         pconn.close()
-        return jsonify(data), 200
+        return jsonify({'created':ts.strftime('%Y-%m-%d %H:%M:%S'),'expires':expiry,'url':request_data["url"],'shortcode':short,'clicks':0}), 200
 
-@app.route('/shorturl/{short_code}', methods=['GET', 'DELETE'])
+@app.route('/shorturl/<short_code>', methods=['GET', 'DELETE'])
 def individual_shortcodes(short_code):
     if 'id' not in session:
         raise Unauthorized
     if request.method == "GET":
+        data = get_short_info(short_code, session["id"])
+        if data is None:
+            raise BadRequest
+        return jsonify({'expires':data[3], 'url':data[2], 'short_code':data[1],'clicks':data[4]}), 200
+    if request.method == "DELETE":
         pconn, cur = get_conn()
-        cur.callproc("get_url", (short_code,))
-    if url is None:
-        return jsonify({'status':'invalid url'})
-    result = cur.callproc("delete_url", (url, session['id']))
-    pconn.commit()
-    return jsonify(result)
-    
+        cur.callproc("delete_url", (short_code, session['id']))
+        pconn.commit()
+        cur.close()
+        pconn.close() 
+        return jsonify({'status':'success'}), 200   
 
-@app.route('/shorturl/{short_code}/expiry', methods=['POST'])
+@app.route('/shorturl/<short_code>/expiry', methods=['POST'])
 def update_link_expiry(short_code):
     if 'id' not in session:
         raise Unauthorized
+    request_data = request.get_json()
+    if "days" not in request_data:
+        raise BadRequest
+    try:
+        if int(request_data["days"]) > 30:
+            raise BadRequest
+    except ValueError as err:
+        raise BadRequest
+    data = get_short_info(short_code, session["id"])
+    if data is None:
+        raise BadRequest
     pconn, cur = get_conn()
-    result = cur.callproc("get_user_urls", (session["id"]))
+    expiry = data[3] + datetime.timedelta(days=int(request_data["days"]))
+    timestamp = expiry.strftime('%Y-%m-%d %H:%M:%S')
+    cur.callproc("update_url_expiration", (short_code, timestamp,))
+    cur.close()
     pconn.commit()
-    return jsonify(result)
+    pconn.close()
+    return jsonify({'status':'success'}), 200
     
-@app.route('/shorturl/{short_code}/url', methods=['POST'])
+@app.route('/shorturl/<short_code>/url', methods=['POST'])
 def update_link_url(short_code):
     if 'id' not in session:
         raise Unauthorized
+    request_data = request.get_json()
+    if "url" not in request_data:
+        raise BadRequest
+    data = get_short_info(short_code, session["id"])
+    if data is None:
+        raise BadRequest
     pconn, cur = get_conn()
-    result = cur.callproc("update_url_expiration", (session["id"]))
+    cur.callproc("edit_url", (session["id"], short_code, request_data["url"],))
+    result = cur.fetchall()
+    cur.close()
     pconn.commit()
-    return jsonify(result)
+    pconn.close()
+    if 'URL updated successfully' not in result[0][0]:
+        return BadRequest
+    return jsonify({'status':result[0][0]}), 200
 
 if __name__ == "__main__":
     with app.app_context():
