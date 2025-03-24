@@ -7,6 +7,7 @@ import string
 import mariadb
 import hashlib
 import datetime
+from email_helper import send_mail
 from cryptography.fernet import Fernet
 from werkzeug.exceptions import BadRequest, Unauthorized
 from flask import Flask, jsonify, session, request, redirect, render_template
@@ -139,10 +140,10 @@ def login():
         session["e"] = email
         user = f"{name}-{id}"
         app.logger.info('user token %s', user)
-        # token =  f"{id}{os.urandom(16).hex()}"
-        # TODO: send email to user
-        # session["verify"] = token
         token = create_digest(user)
+        res = send_mail(token, request_data["email"], "verify", app.logger)
+        if res == False:
+            raise BadRequest
         app.logger.info('verify token %s', token)
         return jsonify({'status':'unverified'}), 200
     cur.close()
@@ -188,7 +189,10 @@ def forgot():
     # TODO: send email to user
     # print(f"reset token: {token}")
     token = os.urandom(16).hex()
-    reset_token = encrypt_data(f"{id}-{request_data['email']}-{token}").strip("=")
+    reset_token = encrypt_data(f"{id}#{request_data['email']}#{token}")
+    res = send_mail(reset_token, request_data["email"], "reset", app.logger)
+    if res == False:
+        raise BadRequest
     app.logger.info('reset token: %s', reset_token)
     token = create_digest(reset_token)
     app.logger.info('hashed reset token: %s', token)
@@ -207,8 +211,8 @@ def reset():
     try:
         app.logger.info("bulltshit: %s", token)
         pconn, cur = get_conn()
-        reset_token = decrypt_data(f"{token}==")
-        id = reset_token.split("-")[0]
+        reset_token = decrypt_data(token)
+        id = reset_token.split("#")[0]
         cur.callproc("get_reset_token", (id,))
         result = cur.fetchall()
         hashed = create_digest(token)
@@ -216,7 +220,7 @@ def reset():
             app.logger.info("user: %s", hashed)
             app.logger.info("db: %s", result[0][0])
             raise BadRequest
-        session["email"] = reset_token.split("-")[1]
+        session["email"] = reset_token.split("#")[1]
         session["reset"] = hashed
     except Exception as e:
         app.logger.info(e)
@@ -226,7 +230,7 @@ def reset():
         pconn.close()
     return render_template("reset.html")
 
-@app.route('/auth/reset-password/', methods=['POST'])
+@app.route('/auth/reset-password', methods=['POST'])
 def reset_pass():
     if 'email' not in session or 'reset' not in session:
         raise Unauthorized
@@ -235,11 +239,13 @@ def reset_pass():
         app.logger.info("Here")
         raise BadRequest
     pconn, cur = get_conn()
+    app.logger.info(f"email: {session['email']}")
     cur.callproc('reset_password', (session['email'], session['reset'], create_digest(request_data['password']),))
     result = cur.fetchall()
     if 'Password reset successful' not in result[0][0]:
         app.logger.info("wtf: %s", result)
         raise BadRequest
+    session.pop('reset', default=None)
     cur.close()
     pconn.commit()
     pconn.close()

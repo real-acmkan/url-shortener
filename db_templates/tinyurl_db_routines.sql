@@ -272,7 +272,7 @@ BEGIN
     JOIN users u ON pr.user_id = u.id
     WHERE u.email = user_email
     AND BINARY pr.token = reset_token  -- Ensure case-sensitive match
-    AND pr.created_at >= NOW() - INTERVAL 1 HOUR;
+    AND pr.created_at >= NOW() - INTERVAL 3 HOUR;
 
     IF user_id IS NOT NULL THEN
         -- Update password
