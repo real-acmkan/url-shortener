@@ -41,7 +41,7 @@ def send_mail(reset_token, email, mode, logger):
     <html>
       <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px;">
         <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-          <h2 style="color: #2d2d2d;">Reset your Linkify password</h2>
+          <h2 style="color: #2d2d2d;">{"Verify your Linkify account" if mode == "verify" else "Reset your Linkify password"}</h2>
           <p style="font-size: 16px; color: #555555;">
            {"Thank you for choosing Linkify. In order to use our service, we require users to have a verified email address." if mode == "verify" else "We received a request to reset your password. If you made this request, click the button below:"}
           </p>

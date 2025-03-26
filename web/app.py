@@ -283,18 +283,31 @@ def update_email():
         return jsonify(info), 200
     if request.method == 'POST':
         request_data = request.get_json()
-        if "name" not in request_data or "email" not in request_data:
-            raise BadRequest
         if "email" in request_data:
             pconn, cur = get_conn()
             cur.callproc("update_user_email", (session["id"], request_data["email"]))
-            pconn.commit()
             cur.close()
+            pconn.commit()
             pconn.close()
+            session["email"] = request_data["email"]
             return jsonify({'status':'success'}), 200
-        return jsonify({'status':'works, pretend for now that name was updated'}), 200
+        if "name" in request_data:
+            pconn, cur = get_conn()
+            cur.callproc("update_user_name", (session["id"], request_data["name"]))
+            cur.close()
+            pconn.commit()
+            pconn.close()
+            session["name"] = request_data["name"]
+            return jsonify({'status':'success'}), 200
+        raise BadRequest
     if request.method == 'DELETE':
-        return jsonify({'status':'works, pretend for now'}), 200
+        pconn, cur = get_conn()
+        cur.callproc("delete_user_account", (session["id"],))
+        cur.close()
+        pconn.commit()
+        pconn.close()
+        session.clear()
+        return jsonify({'status':'success'}), 200
 
 @app.route('/shorturls', methods=['GET', 'POST'])
 def shortcodes():
