@@ -6,14 +6,15 @@ Project for CS3103 by Matthew Toms-Zuberec (3714677) and Sebastien Fournet (3717
 ## Directory structure
 ```
  - README.md
- - web (flask app)
-    |- app.py
-    |- email_helper.py
-    |- settings.py
-- docs (api documentation)
-    |- api_schema.yaml
-- db (DDL to setup database)
-    |- db.sql
+ - linkify
+    |- web (flask app)
+        |- app.py
+        |- email_helper.py
+        |- settings.py
+    |- docs (api documentation)
+        |- api_schema.yaml
+    |- db (DDL to setup database)
+        |- db.sql
 ```
 
 ## Setup
