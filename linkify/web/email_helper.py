@@ -1,25 +1,22 @@
 import os
 import smtplib
+import settings
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 
 def send_mail(reset_token, email, mode, logger):
     if mode == "verify":
-       reset_link = f"https://cs3103.cs.unb.ca:8027/auth/verify?token={reset_token}"
+       reset_link = f"http://{settings.APP_HOST}:{settings.APP_PORT}/auth/verify?token={reset_token}"
     else:
-       reset_link = f"https://cs3103.cs.unb.ca:8027/auth/validate-reset?token={reset_token}"
+       reset_link = f"http://{settings.APP_HOST}:{settings.APP_PORT}/auth/validate-reset?token={reset_token}"
 
-    sender_email="linkify.urlshortener@gmail.com"
+    sender_email="linkify@unb.ca"
     receiver_email=email
     if mode == "verify":
       subject="Verify your Linkify account"
     else:
       subject="Reset your Linkify password"
-    app_password = open(os.getenv("EMAIL"), "r").read()
-    logger.info(f"password: {app_password}")
-    # app.logger.info("Path to email pass file: %s", os.getenv("EMAIL_PASS"))
-
 
     text = f"""
     We received a request to reset your password.
@@ -70,9 +67,7 @@ def send_mail(reset_token, email, mode, logger):
         message.attach(MIMEText(text, "plain"))
         message.attach(MIMEText(html, "html"))
 
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            # server.starttls()
-            server.login(sender_email, app_password)
+        with smtplib.SMTP("smtp.unb.ca", 25) as server:
             server.send_message(message)
 
         logger.info("Password reset email sent to %s", email)
