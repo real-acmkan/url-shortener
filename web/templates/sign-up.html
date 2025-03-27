@@ -89,7 +89,7 @@
     <div class="container">
         <div class="signup-card">
             <h2>Create an Account</h2>
-            <form onsubmit="event.preventDefault(); window.location.href='/dashboard';">
+            <form id="signupForm">
                 <div class="form-group">
                     <label for="firstName">First Name</label>
                     <input type="text" class="form-control" id="firstName" placeholder="Enter your first name" required>
@@ -115,5 +115,48 @@
             </form>
         </div>
     </div>
+    <script>
+        document.getElementById("signupForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+        
+            const firstName = document.getElementById("firstName").value.trim();
+            const lastName = document.getElementById("lastName").value.trim();
+            const email = document.getElementById("email").value.trim();
+            const password = document.getElementById("password").value;
+            const confirmPassword = document.getElementById("confirmPassword").value;
+        
+            if (password !== confirmPassword) {
+                alert("Passwords do not match.");
+                return;
+            }
+        
+            const name = `${firstName} ${lastName}`;
+        
+            try {
+                const response = await fetch("/auth/register", {
+                    method: "POST",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name, email, password })
+                });
+        
+                const data = await response.json();
+        
+                if (data.status === "successfully registered") {
+                    alert("Registration successful! Redirecting...");
+                    window.location.href = "/dashboard";
+                } else if (data.error === "user already exists") {
+                    alert("An account with this email already exists.");
+                } else {
+                    alert("Registration failed. Please try again.");
+                }
+        
+            } catch (err) {
+                console.error(err);
+                alert("An error occurred while signing up.");
+            }
+        });
+    </script>
 </body>
+
 </html>

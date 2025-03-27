@@ -1,3 +1,77 @@
-<html>
-    <p>fix me</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verification Email Sent - Linkify</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --soft-white: #FFF2F2;
+            --light-blue: #A9B5DF;
+            --medium-blue: #7886C7;
+            --dark-blue: #2D336B;
+            --background-gradient: linear-gradient(135deg, var(--soft-white), var(--light-blue));
+        }
+        body {
+            background: var(--background-gradient);
+            color: var(--dark-blue);
+            font-family: Arial, sans-serif;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .signup-card {
+            width: 100%;
+            max-width: 500px;
+            padding: 30px;
+            background: var(--soft-white);
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+        .signup-card h2 {
+            font-family: 'Ubuntu Mono', monospace;
+            font-weight: 700;
+            color: var(--dark-blue);
+            margin-bottom: 20px;
+        }
+        .btn-custom {
+            background: var(--medium-blue);
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            border-radius: 25px;
+            transition: all 0.3s;
+            color: #ffffff;
+            width: 100%;
+        }
+        .btn-custom:hover {
+            background: var(--dark-blue);
+        }
+    </style>
+</head>
+<body>
+    <div style="position: absolute; top: 20px; left: 20px; display: flex; align-items: center; gap: 10px;">
+        <img src="{{url_for('static', filename='test-logo_preview_rev_1.png')}}" alt="Linkify Logo" class="logo" style="width: 120px; height: 120px; object-fit: contain;">
+        <h2 style="font-family: 'Ubuntu Mono', monospace; font-weight: 700; color: var(--dark-blue); margin: 0;">Linkify</h2>
+    </div>
+
+    <div class="container">
+        <div class="signup-card">
+            <h2>Check Your Email</h2>
+            <p>An email has been sent for verification. Please check your inbox and follow the instructions to complete your registration.</p>
+            <a href="/landing" class="btn btn-custom mt-3">Back to Home</a>
+        </div>
+    </div>
+</body>
 </html>

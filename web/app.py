@@ -300,46 +300,78 @@ def update_email():
 def shortcodes():
     if 'id' not in session:
         raise Unauthorized
+
     if request.method == "GET":
         pconn, cur = get_conn()
         cur.callproc("get_user_urls", (session["id"],))
         result = cur.fetchall()
+        cur.close()
+        pconn.close()
+
+        # Format into list of dictionaries
+        links = []
         for row in result:
-            row = jsonify({'expires':row[3],'url':row[2],'shortcode':row[1],'clicks':row[4]})
-        return result, 200
+            links.append({
+                'expires': row[3],
+                'url': row[2],
+                'shortcode': row[1],
+                'clicks': row[4]
+            })
+
+        return jsonify(links), 200
+
     if request.method == "POST":
         request_data = request.get_json()
         if "url" not in request_data:
             raise BadRequest
-        if not request_data["url"].startswith("https://") and not request_data["url"].startswith("http://"):
-            raise BadRequest    
+
+        url = request_data["url"].strip()
+        if not url.startswith("http://") and not url.startswith("https://"):
+            raise BadRequest
+
         short = create_short()
         ts = datetime.datetime.now()
         expiry = ts + datetime.timedelta(days=15)
         timestamp = expiry.strftime('%Y-%m-%d %H:%M:%S')
+
         pconn, cur = get_conn()
-        cur.callproc('create_url', (short, request_data['url'], session['id'], timestamp))
+        cur.callproc('create_url', (short, url, session['id'], timestamp))
         pconn.commit()
         cur.close()
         pconn.close()
-        return jsonify({'created':ts.strftime('%Y-%m-%d %H:%M:%S'),'expires':expiry,'url':request_data["url"],'shortcode':short,'clicks':0}), 200
+
+        return jsonify({
+            'created': ts.strftime('%Y-%m-%d %H:%M:%S'),
+            'expires': expiry,
+            'url': url,
+            'shortcode': short,
+            'clicks': 0
+        }), 200
+
 
 @app.route('/shorturl/<short_code>', methods=['GET', 'DELETE'])
 def individual_shortcodes(short_code):
     if 'id' not in session:
         raise Unauthorized
+
     if request.method == "GET":
         data = get_short_info(short_code, session["id"])
         if data is None:
             raise BadRequest
-        return jsonify({'expires':data[3], 'url':data[2], 'short_code':data[1],'clicks':data[4]}), 200
+        return jsonify({
+            'expires': data[3],
+            'url': data[2],
+            'short_code': data[1],
+            'clicks': data[4]
+        }), 200
+
     if request.method == "DELETE":
         pconn, cur = get_conn()
         cur.callproc("delete_url", (short_code, session['id']))
         pconn.commit()
         cur.close()
-        pconn.close() 
-        return jsonify({'status':'success'}), 200   
+        pconn.close()
+        return jsonify({'status': 'success'}), 200  
 
 @app.route('/shorturl/<short_code>/expiry', methods=['POST'])
 def update_link_expiry(short_code):

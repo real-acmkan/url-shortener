@@ -80,13 +80,13 @@
                 <div class="col-md-6">
                     <div class="card p-3">
                         <h5>Total Links</h5>
-                        <p id="totalLinks" class="display-4">12</p>
+                        <p id="totalLinks" class="display-4"></p>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="card p-3">
                         <h5>Total Clicks</h5>
-                        <p id="totalClicks" class="display-4">3456</p>
+                        <p id="totalClicks" class="display-4"></p>
                     </div>
                 </div>
             </div>
@@ -94,7 +94,7 @@
 
         <div id="shorten-link" class="mt-4">
             <h2 class="text-primary aligned-title">Shorten a New Link</h2>
-            <form class="form-inline aligned-content" style="width: 100%; max-width: 800px;">
+            <form id="shortenForm" class="form-inline aligned-content" style="width: 100%; max-width: 800px;">
                 <input type="url" class="form-control mr-2" style="flex: 1; padding: 12px; border-radius: 10px;" id="originalUrl" placeholder="Enter your URL" required>
                 <button type="submit" class="btn btn-custom">Shorten</button>
             </form>
@@ -110,18 +110,7 @@
                         <th>Clicks</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td>https://example.com</td>
-                        <td><a href="#" class="text-info">https://linkify.io/abc123</a></td>
-                        <td>123</td>
-                    </tr>
-                    <tr>
-                        <td>https://google.com</td>
-                        <td><a href="#" class="text-info">https://linkify.io/xyz789</a></td>
-                        <td>456</td>
-                    </tr>
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
 
@@ -144,13 +133,76 @@
     </footer>
 
     <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            fetchLinks();
+        
+            document.getElementById("shortenForm").addEventListener("submit", async function (e) {
+                e.preventDefault();
+                const urlInput = document.getElementById("originalUrl").value.trim();
+                if (!urlInput) return;
+        
+                try {
+                    const response = await fetch("/shorturls", {
+                        method: "POST",
+                        credentials: "include",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ url: urlInput })
+                    });
+        
+                    const data = await response.json();
+                    if (data.shortcode) {
+                        alert("Link created!");
+                        document.getElementById("originalUrl").value = "";
+                        fetchLinks();
+                    } else {
+                        alert("Failed to create link.");
+                    }
+                } catch (err) {
+                    console.error("Error creating link:", err);
+                    alert("An error occurred.");
+                }
+            });
+        });
+        
+        async function fetchLinks() {
+            try {
+                const response = await fetch("/shorturls", {
+                    method: "GET",
+                    credentials: "include"
+                });
+                const links = await response.json();
+        
+                let totalClicks = 0;
+                let tableRows = "";
+        
+                for (const link of links) {
+                    totalClicks += link.clicks;
+                    tableRows += `
+                        <tr>
+                            <td>${link.url}</td>
+                            <td><a href="/${link.shortcode}" class="text-info" target="_blank">https://linkify.io/${link.shortcode}</a></td>
+                            <td>${link.clicks}</td>
+                        </tr>
+                    `;
+                }
+        
+                document.getElementById("totalLinks").textContent = links.length;
+                document.getElementById("totalClicks").textContent = totalClicks;
+                document.querySelector("#links tbody").innerHTML = tableRows;
+            } catch (err) {
+                console.error("Failed to load links:", err);
+                alert("Failed to load your links.");
+            }
+        }
+        
+        // Chart.js demo data (can be made dynamic later)
         var ctx = document.getElementById('clickChart').getContext('2d');
         var chartData = {
             hourly: { labels: ['12 AM', '1 AM', '2 AM', '3 AM', '4 AM'], data: [5, 10, 15, 7, 12] },
             daily: { labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], data: [120, 150, 180, 90, 110] },
             weekly: { labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'], data: [400, 450, 420, 480] }
         };
-
+        
         var clickChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -172,13 +224,14 @@
                 }
             }
         });
-
+        
         function updateChart() {
             var selectedOption = document.getElementById('chartToggle').value;
             clickChart.data.labels = chartData[selectedOption].labels;
             clickChart.data.datasets[0].data = chartData[selectedOption].data;
             clickChart.update();
         }
-    </script>
+        </script>
+        
 </body>
 </html>

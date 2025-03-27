@@ -1,9 +1,12 @@
-from flask import render_template, url_for
+from flask import render_template, url_for, session, redirect
+from werkzeug.exceptions import Unauthorized
 
 def index():
     return render_template('index.html')
 
 def dashboard():
+    if 'id' not in session: 
+        raise Unauthorized
     return render_template('dashboard.html')
 
 def login_page():

@@ -13,6 +13,8 @@ services:
       - db_pass
       - secret_key
       - email_pass
+    volumes:
+      - ./web:/app
     depends_on:
       mariadb:
         condition: service_started

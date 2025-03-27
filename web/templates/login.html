@@ -89,7 +89,7 @@
     <div class="container">
         <div class="login-card">
             <h2>Login to Linkify</h2>
-            <form onsubmit="event.preventDefault(); window.location.href='dashboard.html';">
+            <form id="loginForm">
                 <div class="form-group">
                     <label for="email">Email</label>
                     <input type="email" class="form-control" id="email" placeholder="Enter your email" required>
@@ -104,5 +104,36 @@
             </form>
         </div>
     </div>
+    <script>
+        document.getElementById("loginForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+        
+            const email = document.getElementById("email").value.trim();
+            const password = document.getElementById("password").value;
+        
+            try {
+                const response = await fetch("/auth/login", {
+                    method: "POST",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, password })
+                });
+        
+                const data = await response.json();
+        
+                if (data.status === "login successful") {
+                    window.location.href = "dashboard.html";
+                } else if (data.status === "unverified") {
+                    window.location.href = "verify.html";
+                } else {
+                    alert("Invalid email or password.");
+                }
+            } catch (err) {
+                console.error("Login error:", err);
+                alert("Something went wrong during login.");
+            }
+        });
+        </script>
+        
 </body>
 </html>
