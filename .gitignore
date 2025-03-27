@@ -3,5 +3,4 @@ key
 em
 .env
 venv/
-db/
-/db
+
