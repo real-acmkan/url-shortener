@@ -48,8 +48,8 @@ paths:
               $ref: '#/components/schemas/Registration'
         required: true
       responses:
-        '201':
-          description: User registered successfully
+        '200':
+          $ref: "#/components/responses/GoodRequest"
         '400':
           $ref: "#/components/responses/BadRequest"
       security:
@@ -95,7 +95,7 @@ paths:
       operationId: logoutUser
       responses:
         '200':
-          description: User logged out successfully
+          $ref: "#/components/responses/GoodRequest"
         '400':
           $ref: "#/components/responses/BadRequest"
       security:
@@ -118,7 +118,7 @@ paths:
               $ref: '#/components/schemas/Email'
       responses:
         '200':
-          description: Password reset link sent (if account exists)
+          $ref: "#/components/responses/GoodRequest"
         '400':
           $ref: "#/components/responses/BadRequest"
       security:
@@ -142,7 +142,7 @@ paths:
             type: string
       responses:
         '200':
-          description: Valid reset token
+          $ref: "#/components/responses/GoodRequest"
         '400':
           $ref: "#/components/responses/BadRequest"
       security:
@@ -164,7 +164,7 @@ paths:
               $ref: '#/components/schemas/Password'
       responses:
         '200':
-          description: Password reset successfully
+          $ref: "#/components/responses/GoodRequest"
         '400':
           $ref: "#/components/responses/BadRequest"
       security:
@@ -188,7 +188,7 @@ paths:
             type: string
       responses:
         '200':
-          description: User verified successfully
+          $ref: "#/components/responses/GoodRequest"
         '400':
           $ref: "#/components/responses/BadRequest"
       security:
@@ -293,8 +293,8 @@ paths:
             type: string
             example: abc123
       responses:
-        '204':
-          description: Link deleted successfully (no content)
+        '200':
+          $ref: "#/components/responses/GoodRequest"
         '400':
           $ref: "#/components/responses/BadRequest"
         '401':
@@ -324,10 +324,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Url'
+              $ref: '#/components/schemas/Days'
       responses:
         '200':
-          description: Expiry updated successfully
+          $ref: "#/components/responses/GoodRequest"
         '400':
           $ref: "#/components/responses/BadRequest"
         '401':
@@ -360,7 +360,7 @@ paths:
               $ref: '#/components/schemas/Url'
       responses:
         '200':
-          description: Destination updated successfully
+          $ref: "#/components/responses/GoodRequest"
         '400':
           $ref: "#/components/responses/BadRequest"
         '401':
@@ -408,7 +408,7 @@ paths:
                 - $ref: '#/components/schemas/Email'
       responses:
         '200':
-          description: User information updated successfully
+          $ref: "#/components/responses/GoodRequest"
         '400':
           $ref: "#/components/responses/BadRequest"
         '401':
@@ -425,8 +425,8 @@ paths:
       description: Permanently remove the user's account and associated data.
       operationId: delUser
       responses:
-        '204':
-          description: Account deleted successfully (no content)
+        '200':
+          $ref: "#/components/responses/GoodRequest"
         '400':
           $ref: "#/components/responses/BadRequest"
         '401':
@@ -443,7 +443,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ResponseBody"
+            $ref: "#/components/schemas/SuccessResponse"
     BadRequest:
       description: A bad request was made
       content:
@@ -488,6 +488,12 @@ components:
         url:
           type: string
           example: https://example.com/
+    Days:
+      type: object
+      properties:
+        days:
+          type: string
+          example: 5
     Auth:
       required:
         - email
@@ -553,7 +559,14 @@ components:
         email:
           type: string
           example: dog@doggie.com
-
+    SuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "some success message"
+      required:
+        - status
     ResponseBody:
       type: object
       properties:
