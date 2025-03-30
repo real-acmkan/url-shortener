@@ -87,6 +87,9 @@ app.add_url_rule('/login', view_func=views.login_page)
 app.add_url_rule('/register', view_func=views.register_page)
 app.add_url_rule('/dashboard', view_func=views.dashboard)
 app.add_url_rule('/profile', view_func=views.profile)
+app.add_url_rule('/links', view_func=views.links)
+app.add_url_rule('/verify', view_func=views.verify_page)
+
 
 @app.errorhandler(BadRequest)
 def handle_bad_request(e):
@@ -271,7 +274,7 @@ def verify():
     session['email'] = session['e']
     session['id'] = id
     session.pop('e', default=None)
-    return render_template("verify.html")
+    return render_template("verified.html")
 
 @app.route('/user', methods=['GET', 'POST', 'DELETE'])
 def update_email():

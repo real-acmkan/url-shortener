@@ -258,9 +258,9 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb3 */ ;
 /*!50003 SET collation_connection  = utf8mb3_uca1400_ai_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`%` PROCEDURE `get_clicks`(IN short_code VARCHAR(20))
+CREATE DEFINER=`root`@`%` PROCEDURE `get_clicks`(IN scode VARCHAR(20))
 BEGIN
-    SELECT click_count FROM urls WHERE short_code = short_code;
+    SELECT click_count FROM urls WHERE short_code = scode;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -317,9 +317,9 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb3 */ ;
 /*!50003 SET collation_connection  = utf8mb3_uca1400_ai_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`%` PROCEDURE `get_url`(IN short_code VARCHAR(20))
+CREATE DEFINER=`root`@`%` PROCEDURE `get_url`(IN scode VARCHAR(20))
 BEGIN
-    SELECT original_url FROM urls WHERE short_code = short_code;
+    SELECT original_url FROM urls WHERE short_code = scode;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -355,9 +355,9 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb3 */ ;
 /*!50003 SET collation_connection  = utf8mb3_uca1400_ai_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`%` PROCEDURE `get_user_urls`(IN user_id INT)
+CREATE DEFINER=`root`@`%` PROCEDURE `get_user_urls`(IN userid INT)
 BEGIN
-    SELECT id, short_code, original_url, expiration_date, click_count FROM urls WHERE user_id = user_id;
+    SELECT id, short_code, original_url, expiration_date, click_count FROM urls WHERE user_id = userid;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -403,9 +403,9 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb3 */ ;
 /*!50003 SET collation_connection  = utf8mb3_uca1400_ai_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`%` PROCEDURE `log_click`(IN short_code VARCHAR(20))
+CREATE DEFINER=`root`@`%` PROCEDURE `log_click`(IN scode VARCHAR(20))
 BEGIN
-    UPDATE urls SET click_count = click_count + 1 WHERE short_code = short_code;
+    UPDATE urls SET click_count = click_count + 1 WHERE short_code = scode;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -488,11 +488,11 @@ DELIMITER ;
 /*!50003 SET collation_connection  = utf8mb3_uca1400_ai_ci */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`%` PROCEDURE `update_url_expiration`(
-    IN short_code VARCHAR(20),
+    IN scode VARCHAR(20),
     IN new_expiration TIMESTAMP
 )
 BEGIN
-    UPDATE urls SET expiration_date = new_expiration WHERE short_code = short_code;
+    UPDATE urls SET expiration_date = new_expiration WHERE short_code = scode;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;

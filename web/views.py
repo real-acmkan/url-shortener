@@ -17,3 +17,11 @@ def register_page():
 
 def profile():
     return render_template('profile.html')
+
+def verify_page():
+    return render_template('verify.html')
+
+def links():
+    if 'id' not in session:
+        raise Unauthorized
+    return render_template('links.html')

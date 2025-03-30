@@ -85,17 +85,46 @@
         <div class="profile-card">
             <h2>Profile</h2>
             <img src="https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png" class="profile-img" alt="Profile Picture">
-            <h4>John Doe</h4>
-            <p class="text-muted">john.doe@example.com</p>
+            <h4 id="profileName"></h4>
+            <p class="text-muted" id="profileEmail"></p>
             <hr>
             <h5>Account Details</h5>
-            <p><strong>Username:</strong> johndoe</p>
-            <p><strong>Joined:</strong> January 2024</p>
-            <p><strong>Role:</strong> User</p>
+            <p><strong>Username:</strong> </p>
+            <p><strong>Joined:</strong></p>
+            <p><strong>Role:</strong></p>
             <hr>
             <button class="btn btn-custom" onclick="window.location.href='profile-edit.html'">Edit Profile</button>
-            <button class="btn btn-danger btn-block mt-2">Logout</button>
+            <button class="btn btn-danger btn-block mt-2" id="logoutBtn">Logout</button>
         </div>
     </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", async function () {
+            try {
+                const res = await fetch("/user", {
+                    method: "GET",
+                    credentials: "include"
+                });
+        
+                if (!res.ok) {
+                    throw new Error("Unauthorized or failed to fetch user");
+                }
+        
+                const data = await res.json();
+                document.getElementById("profileName").textContent = data.name;
+                document.getElementById("profileEmail").textContent = data.email;
+            } catch (err) {
+                console.error("Error loading profile:", err);
+                alert("Failed to load profile. You may need to log in again.");
+                window.location.href = "/login";
+            }
+        });
+
+        document.getElementById("logoutBtn").addEventListener("click", async () => {
+            await fetch("/auth/logout", { method: "GET", credentials: "include" });
+            window.location.href = "/login";
+        });
+
+        </script>
+        
 </body>
 </html>

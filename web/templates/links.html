@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Links - Linkify</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"/>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --soft-white: #FFF2F2;
+      --light-blue: #A9B5DF;
+      --medium-blue: #7886C7;
+      --dark-blue: #2D336B;
+      --background-gradient: linear-gradient(135deg, var(--soft-white), var(--light-blue));
+    }
+    body {
+      background: var(--background-gradient);
+      color: var(--dark-blue);
+      font-family: 'Ubuntu Mono', monospace;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    .container {
+      flex: 1;
+      padding: 40px 20px;
+    }
+    .table th, .table td {
+      vertical-align: middle;
+    }
+    .navbar {
+      background: var(--dark-blue);
+    }
+    .navbar-brand, .nav-link {
+      color: #ffffff !important;
+    }
+    .footer {
+      background: var(--dark-blue);
+      color: #ffffff;
+      text-align: center;
+      padding: 10px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar navbar-expand-lg">
+    <a class="navbar-brand" href="#">Linkify</a>
+    <div class="collapse navbar-collapse">
+      <ul class="navbar-nav">
+        <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="/links">My Links</a></li>
+        <li class="nav-item"><a class="nav-link" href="/profile">Profile</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h2 class="mb-4">My Shortened Links</h2>
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+            <thead>
+              <tr>
+                <th>Original URL</th>
+                <th>Short URL</th>
+                <th>Clicks</th>
+                <th>Expiration Date</th>
+              </tr>
+            </thead>
+            <tbody id="linksTableBody">
+              <tr><td colspan="4" class="text-center text-muted">Loading...</td></tr>
+            </tbody>
+          </table>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>&copy; 2025 Linkify. All Rights Reserved.</p>
+  </footer>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", async function () {
+      try {
+        const res = await fetch("/shorturls", {
+          method: "GET",
+          credentials: "include"
+        });
+
+        if (!res.ok) throw new Error("Unauthorized");
+
+        const links = await res.json();
+        const tbody = document.getElementById("linksTableBody");
+        tbody.innerHTML = "";
+
+        if (links.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">You have no links yet.</td></tr>`;
+          return;
+        }
+
+        for (const link of links) {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td class="text-break">${link.url}</td>
+                <td class="text-break"><a href="/${link.shortcode}" target="_blank">https://linkify.io/${link.shortcode}</a></td>
+                <td>${link.clicks}</td>
+                <td>${new Date(link.expires).toLocaleString()}</td>
+            `;
+            tbody.appendChild(row);
+        }
+      } catch (err) {
+        console.error("Error loading links:", err);
+        alert("Session expired. Please log in again.");
+        window.location.href = "/login";
+      }
+    });
+  </script>
+</body>
+</html>

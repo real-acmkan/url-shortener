@@ -122,9 +122,9 @@
                 const data = await response.json();
         
                 if (data.status === "login successful") {
-                    window.location.href = "dashboard.html";
+                    window.location.href = "dashboard";
                 } else if (data.status === "unverified") {
-                    window.location.href = "verify.html";
+                    window.location.href = "/verify";
                 } else {
                     alert("Invalid email or password.");
                 }

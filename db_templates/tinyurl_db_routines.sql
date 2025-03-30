@@ -147,9 +147,9 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE PROCEDURE `get_url`(IN short_code VARCHAR(20))
+CREATE PROCEDURE `get_url`(IN scode VARCHAR(20))
 BEGIN
-    SELECT original_url FROM URLs WHERE short_code = short_code;
+    SELECT original_url FROM URLs WHERE short_code = scode;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -192,9 +192,9 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE PROCEDURE `get_user_urls`(IN user_id INT)
+CREATE PROCEDURE `get_user_urls`(IN userid INT)
 BEGIN
-    SELECT id, short_code, original_url, expiration_date, click_count FROM URLs WHERE user_id = user_id;
+    SELECT id, short_code, original_url, expiration_date, click_count FROM URLs WHERE user_id = userid;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -240,9 +240,9 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE PROCEDURE `log_click`(IN short_code VARCHAR(20))
+CREATE PROCEDURE `log_click`(IN scode VARCHAR(20))
 BEGIN
-    UPDATE URLs SET click_count = click_count + 1 WHERE short_code = short_code;
+    UPDATE URLs SET click_count = click_count + 1 WHERE short_code = scode;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
