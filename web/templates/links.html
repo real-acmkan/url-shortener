@@ -68,6 +68,7 @@
                 <th>Short URL</th>
                 <th>Clicks</th>
                 <th>Expiration Date</th>
+                <th>Manage</th>
               </tr>
             </thead>
             <tbody id="linksTableBody">
@@ -82,6 +83,22 @@
   </footer>
 
   <script>
+    async function deleteLink(shortcode) {
+      try {
+        const resp = await fetch("/shorturl/"+shortcode, {
+          method: "DELETE",
+          credentials: "include"
+        });
+
+        if (!resp.ok) throw new Error("Unauthorized");
+        // const links = await resp.json();
+        window.location.href = "/links";
+
+      } catch (err) {
+        console.error("Error loading links:", err);
+        // alert("Could not delete shortcode. Please try again");
+      }
+    }
     document.addEventListener("DOMContentLoaded", async function () {
       try {
         const res = await fetch("/shorturls", {
@@ -107,6 +124,7 @@
                 <td class="text-break"><a href="/${link.shortcode}" target="_blank">https://linkify.io/${link.shortcode}</a></td>
                 <td>${link.clicks}</td>
                 <td>${new Date(link.expires).toLocaleString()}</td>
+                <td><button style="background-color:#ff0047;color:#ffffff;border-radius:5px;" onclick="deleteLink('${link.shortcode}')">Delete</button></td>
             `;
             tbody.appendChild(row);
         }

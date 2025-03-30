@@ -112,7 +112,7 @@ def redirect_url(short_id):
         pconn.commit()
         cur.close()
         pconn.close()
-        return redirect(url)
+        return redirect(url[0])
     pconn.close()
     return render_template('index.html')
 
